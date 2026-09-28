@@ -17,6 +17,7 @@ from app.routes.admin import bp as admin_bp
 from app.routes.employees import bp as employees_bp
 from app.routes.graph import bp as graph_bp
 from app.routes.health import bp as health_bp
+from app.routes.organizations import bp as organizations_bp
 from app.routes.positions import bp as positions_bp
 from app.routes.reporting_lines import bp as reporting_lines_bp
 
@@ -69,5 +70,6 @@ def create_app(settings: Settings | None = None) -> OpenAPI:
     app.register_api(graph_bp)
     app.register_api(reporting_lines_bp)
     app.register_api(admin_bp)
+    app.register_api(organizations_bp)
 
     return app

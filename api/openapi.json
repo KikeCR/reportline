@@ -296,6 +296,42 @@
         "title": "OccupantOut",
         "type": "object"
       },
+      "OrganizationOut": {
+        "properties": {
+          "id": {
+            "example": "507f1f77bcf86cd799439011",
+            "format": "objectid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "OrganizationOut",
+        "type": "object"
+      },
+      "OrganizationsOut": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/OrganizationOut"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "OrganizationsOut",
+        "type": "object"
+      },
       "PositionOut": {
         "properties": {
           "department": {
@@ -1211,6 +1247,40 @@
           }
         },
         "summary": "Add a reporting line",
+        "tags": [
+          "default"
+        ]
+      }
+    },
+    "/api/v1/organizations/": {
+      "get": {
+        "operationId": "organizations_list_organizations__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationsOut"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ValidationErrorModel"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List organizations",
         "tags": [
           "default"
         ]

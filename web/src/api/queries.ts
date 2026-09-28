@@ -10,12 +10,20 @@ import {
 	getDescendants,
 	getEmployee,
 	getGraph,
+	getOrganizations,
 	getPosition,
 	getQuarantine,
 	getSyncRuns,
 	removeReportingLine,
 	runSync,
 } from './client'
+
+export function useOrganizations() {
+	return useQuery({
+		queryKey: ['organizations'],
+		queryFn: getOrganizations,
+	})
+}
 
 export function useGraph(
 	orgId: string,

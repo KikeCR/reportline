@@ -11,6 +11,7 @@ import {
 	EmployeeHROutSchema,
 	ErrorOutSchema,
 	GraphOutSchema,
+	OrganizationsOutSchema,
 	PositionOutSchema,
 	QuarantineListOutSchema,
 	SyncRunOutSchema,
@@ -51,6 +52,17 @@ async function request<T>(
 		throw new ApiError(response.status, ErrorOutSchema.parse(json))
 	}
 	return schema.parse(json)
+}
+
+/** The one endpoint with no tenant header - a client can't know its org id
+ * without this. */
+export async function getOrganizations() {
+	const response = await fetch(`${BASE_URL}/organizations/`)
+	const json: unknown = await response.json()
+	if (!response.ok) {
+		throw new ApiError(response.status, ErrorOutSchema.parse(json))
+	}
+	return OrganizationsOutSchema.parse(json)
 }
 
 export function getGraph(

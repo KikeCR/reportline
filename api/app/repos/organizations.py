@@ -42,6 +42,12 @@ class OrganizationRepo:
     def find_by_name(self, name: str, *, session: ClientSession | None = None) -> Document | None:
         return self._collection.find_one({"name": name}, session=session)
 
+    def list_all(self, *, session: ClientSession | None = None) -> list[Document]:
+        """The tenant directory - the one place a client can enumerate orgs
+        without already knowing an org_id (used by the frontend's org picker).
+        """
+        return list(self._collection.find({}, sort=[("name", 1)], session=session))
+
     def delete(self, org_id: ObjectId, *, session: ClientSession | None = None) -> None:
         self._collection.delete_one({"_id": org_id}, session=session)
 

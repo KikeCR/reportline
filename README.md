@@ -46,8 +46,10 @@ npm install
 npm run dev   # proxies /api/v1, /healthz, /readyz to localhost:5001
 ```
 
-Open the printed Vite URL, paste a seeded org id (printed by `scripts.seed`,
-or check Mongo directly) into the "Tenant id" field, and the chart loads.
+Open the printed Vite URL - the "Tenant" dropdown in the header lists every
+seeded organization and auto-selects the first one, so the chart loads with
+no setup. Switch tenants from that dropdown; the "Admin" tab (top left) has
+the HRIS sync + quarantine tables.
 
 ```bash
 make test   # backend: spins up its own MongoDB container per run

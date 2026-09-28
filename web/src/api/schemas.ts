@@ -177,6 +177,21 @@ export const QuarantineListOutSchema = z.object({
 	results: z.array(QuarantineOutSchema),
 })
 
+export const OrganizationOutSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+})
+export type _CheckOrganizationOut = Expect<
+	Equal<
+		z.infer<typeof OrganizationOutSchema>,
+		components['schemas']['OrganizationOut']
+	>
+>
+
+export const OrganizationsOutSchema = z.object({
+	results: z.array(OrganizationOutSchema),
+})
+
 export type PositionOut = z.infer<typeof PositionOutSchema>
 export type DescendantOut = z.infer<typeof DescendantOutSchema>
 export type NodeOut = z.infer<typeof NodeOutSchema>
@@ -187,3 +202,4 @@ export type EmployeeHROut = z.infer<typeof EmployeeHROutSchema>
 export type ErrorOut = z.infer<typeof ErrorOutSchema>
 export type SyncRunOut = z.infer<typeof SyncRunOutSchema>
 export type QuarantineOut = z.infer<typeof QuarantineOutSchema>
+export type OrganizationOut = z.infer<typeof OrganizationOutSchema>
