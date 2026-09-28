@@ -92,6 +92,21 @@ def test_bamboo_sync_quarantines_one_side_of_a_manager_cycle(db):
     assert result.quarantined >= 1
 
 
+def test_quarantine_entries_do_not_duplicate_across_repeated_sync_runs(db):
+    org_id = _seed_org(db)
+
+    first = run_sync(org_id, WorkdayLikeAdapter())
+    first_quarantine_count = len(QuarantineRepo(org_id).list_for_org())
+
+    second = run_sync(org_id, WorkdayLikeAdapter())
+
+    # Same still-broken fixture records every run: each is still reported as
+    # quarantined, but re-syncing an unfixed record must not pile up a
+    # duplicate quarantine document for the same underlying problem.
+    assert second.quarantined == first.quarantined
+    assert len(QuarantineRepo(org_id).list_for_org()) == first_quarantine_count
+
+
 def test_sync_records_a_sync_run(db):
     org_id = _seed_org(db)
 

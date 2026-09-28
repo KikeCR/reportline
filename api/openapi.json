@@ -662,7 +662,7 @@
   "paths": {
     "/api/v1/admin/quarantine": {
       "get": {
-        "operationId": "admin_list_quarantine_quarantine_get",
+        "operationId": "admin_list_quarantine_route_quarantine_get",
         "parameters": [
           {
             "description": "Interim pre-auth tenant id - replaced by a JWT claim in Phase 4",
@@ -709,7 +709,7 @@
     },
     "/api/v1/admin/sync/runs": {
       "get": {
-        "operationId": "admin_list_sync_runs_sync_runs_get",
+        "operationId": "admin_list_sync_runs_route_sync_runs_get",
         "parameters": [
           {
             "description": "Interim pre-auth tenant id - replaced by a JWT claim in Phase 4",
@@ -1254,7 +1254,7 @@
     },
     "/api/v1/organizations/": {
       "get": {
-        "operationId": "organizations_list_organizations__get",
+        "operationId": "organizations_list_organizations_route__get",
         "responses": {
           "200": {
             "content": {

@@ -249,6 +249,26 @@ def test_move_subtree_reparents_and_rejects_a_cycle(db):
         org_graph.move_subtree(org_id, vp2, director)
 
 
+def test_move_subtree_rejecting_a_cycle_leaves_the_original_manager_intact(db):
+    """services/sync.py relies on move_subtree being atomic: a rejected
+    re-parent must not leave the position with no manager at all (which two
+    separate remove_reporting_line + add_reporting_line calls could)."""
+    org_id = _seed_org(db)
+    ceo = _seed_position(db, org_id, title="CEO")
+    vp = _seed_position(db, org_id, title="VP")
+    director = _seed_position(db, org_id, title="Director")
+    org_graph.add_reporting_line(org_id, ceo, vp, "solid", True)
+    org_graph.add_reporting_line(org_id, vp, director, "solid", True)
+
+    with pytest.raises(CycleError):
+        org_graph.move_subtree(org_id, vp, director)
+
+    unchanged = org_graph.get_position(org_id, vp)
+    assert len(unchanged.reports_to) == 1
+    assert unchanged.reports_to[0].position_id == ceo
+    assert unchanged.reports_to[0].is_primary is True
+
+
 def test_get_graph_returns_nodes_edges_and_root_ids(db):
     org_id = _seed_org(db)
     ceo = _seed_position(db, org_id, title="CEO")

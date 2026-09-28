@@ -12,7 +12,7 @@ export interface paths {
             cookie?: never;
         };
         /** List quarantined records */
-        get: operations["admin_list_quarantine_quarantine_get"];
+        get: operations["admin_list_quarantine_route_quarantine_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -29,7 +29,7 @@ export interface paths {
             cookie?: never;
         };
         /** List past sync runs */
-        get: operations["admin_list_sync_runs_sync_runs_get"];
+        get: operations["admin_list_sync_runs_route_sync_runs_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -149,7 +149,7 @@ export interface paths {
             cookie?: never;
         };
         /** List organizations */
-        get: operations["organizations_list_organizations__get"];
+        get: operations["organizations_list_organizations_route__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -525,7 +525,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    admin_list_quarantine_quarantine_get: {
+    admin_list_quarantine_route_quarantine_get: {
         parameters: {
             query?: never;
             header: {
@@ -560,7 +560,7 @@ export interface operations {
             };
         };
     };
-    admin_list_sync_runs_sync_runs_get: {
+    admin_list_sync_runs_route_sync_runs_get: {
         parameters: {
             query?: never;
             header: {
@@ -925,7 +925,7 @@ export interface operations {
             };
         };
     };
-    organizations_list_organizations__get: {
+    organizations_list_organizations_route__get: {
         parameters: {
             query?: never;
             header?: never;
