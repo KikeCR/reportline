@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Env
+.env
+
+# Node
+node_modules/
+dist/
+web/src/api/schema.d.ts.tmp
+
+# OS
+.DS_Store
