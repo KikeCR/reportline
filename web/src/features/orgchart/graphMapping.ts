@@ -98,6 +98,7 @@ export function buildElkGraph(
 			'elk.direction': 'DOWN',
 			'elk.layered.spacing.nodeNodeBetweenLayers': '64',
 			'elk.spacing.nodeNode': '32',
+			'elk.layered.nodePlacement.strategy': 'SIMPLE',
 		},
 		children: visibleNodes.map((node) => ({
 			id: node.id,
