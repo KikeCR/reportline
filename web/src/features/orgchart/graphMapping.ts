@@ -98,6 +98,13 @@ export function buildElkGraph(
 			'elk.direction': 'DOWN',
 			'elk.layered.spacing.nodeNodeBetweenLayers': '64',
 			'elk.spacing.nodeNode': '32',
+			// The default strategy (BRANDES_KOEPF) optimizes for straight edges
+			// and can leave a parent flush against one edge of its subtree
+			// instead of centered over its children - confirmed by comparing
+			// strategies directly against elkjs on both symmetric and
+			// asymmetric fan-outs. SIMPLE centers a parent over the midpoint
+			// (symmetric case) or median (odd fan-out) of its children instead.
+			'elk.layered.nodePlacement.strategy': 'SIMPLE',
 		},
 		children: visibleNodes.map((node) => ({
 			id: node.id,
