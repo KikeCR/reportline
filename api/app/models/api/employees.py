@@ -1,8 +1,7 @@
-"""``EmployeePublicOut`` vs ``EmployeeHROut``: CLAUDE.md requires
-compensation to exist only on the HR-level model. Phase 4 will branch on
-role to choose between them; until then, GET /employees/{id} always returns
-the public shape - never expose compensation ahead of having a permission
-model to gate it.
+"""``EmployeePublicOut`` (no compensation) vs ``EmployeeHROut``. Auth/roles
+are descoped for now (see README "Descoped") so the route always returns
+``EmployeeHROut``; ``EmployeePublicOut`` stays defined for when a permission
+model is added back.
 """
 
 from __future__ import annotations

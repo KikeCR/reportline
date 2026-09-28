@@ -1,6 +1,25 @@
 {
   "components": {
     "schemas": {
+      "CompensationOut": {
+        "properties": {
+          "amount": {
+            "format": "decimal",
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "title": "CompensationOut",
+        "type": "object"
+      },
       "DescendantOut": {
         "properties": {
           "department": {
@@ -96,8 +115,11 @@
         "title": "EdgeOut",
         "type": "object"
       },
-      "EmployeePublicOut": {
+      "EmployeeHROut": {
         "properties": {
+          "compensation": {
+            "$ref": "#/components/schemas/CompensationOut"
+          },
           "id": {
             "example": "507f1f77bcf86cd799439011",
             "format": "objectid",
@@ -123,9 +145,10 @@
         "required": [
           "id",
           "name",
-          "title"
+          "title",
+          "compensation"
         ],
-        "title": "EmployeePublicOut",
+        "title": "EmployeeHROut",
         "type": "object"
       },
       "ErrorOut": {
@@ -319,6 +342,55 @@
         "title": "PositionStatus",
         "type": "string"
       },
+      "QuarantineListOut": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/QuarantineOut"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "QuarantineListOut",
+        "type": "object"
+      },
+      "QuarantineOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "raw": {
+            "additionalProperties": true,
+            "title": "Raw",
+            "type": "object"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "raw",
+          "errors",
+          "created_at"
+        ],
+        "title": "QuarantineOut",
+        "type": "object"
+      },
       "ReadyOut": {
         "properties": {
           "mongo": {
@@ -424,6 +496,66 @@
         "title": "ReportsToEdge",
         "type": "object"
       },
+      "SyncRunOut": {
+        "properties": {
+          "created_count": {
+            "title": "Created Count",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "quarantined_count": {
+            "title": "Quarantined Count",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "unchanged_count": {
+            "title": "Unchanged Count",
+            "type": "integer"
+          },
+          "updated_count": {
+            "title": "Updated Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source",
+          "created_count",
+          "updated_count",
+          "unchanged_count",
+          "quarantined_count",
+          "duration_ms",
+          "started_at"
+        ],
+        "title": "SyncRunOut",
+        "type": "object"
+      },
+      "SyncRunsOut": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SyncRunOut"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "SyncRunsOut",
+        "type": "object"
+      },
       "ValidationErrorModel": {
         "properties": {
           "ctx": {
@@ -492,6 +624,160 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/quarantine": {
+      "get": {
+        "operationId": "admin_list_quarantine_quarantine_get",
+        "parameters": [
+          {
+            "description": "Interim pre-auth tenant id - replaced by a JWT claim in Phase 4",
+            "example": "507f1f77bcf86cd799439011",
+            "in": "header",
+            "name": "x_org_id",
+            "required": true,
+            "schema": {
+              "description": "Interim pre-auth tenant id - replaced by a JWT claim in Phase 4",
+              "example": "507f1f77bcf86cd799439011",
+              "format": "objectid",
+              "title": "X Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuarantineListOut"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List quarantined records",
+        "tags": [
+          "default"
+        ]
+      }
+    },
+    "/api/v1/admin/sync/runs": {
+      "get": {
+        "operationId": "admin_list_sync_runs_sync_runs_get",
+        "parameters": [
+          {
+            "description": "Interim pre-auth tenant id - replaced by a JWT claim in Phase 4",
+            "example": "507f1f77bcf86cd799439011",
+            "in": "header",
+            "name": "x_org_id",
+            "required": true,
+            "schema": {
+              "description": "Interim pre-auth tenant id - replaced by a JWT claim in Phase 4",
+              "example": "507f1f77bcf86cd799439011",
+              "format": "objectid",
+              "title": "X Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncRunsOut"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List past sync runs",
+        "tags": [
+          "default"
+        ]
+      }
+    },
+    "/api/v1/admin/sync/{source}": {
+      "post": {
+        "operationId": "admin_run_sync_route_sync__source__post",
+        "parameters": [
+          {
+            "description": "Interim pre-auth tenant id - replaced by a JWT claim in Phase 4",
+            "example": "507f1f77bcf86cd799439011",
+            "in": "header",
+            "name": "x_org_id",
+            "required": true,
+            "schema": {
+              "description": "Interim pre-auth tenant id - replaced by a JWT claim in Phase 4",
+              "example": "507f1f77bcf86cd799439011",
+              "format": "objectid",
+              "title": "X Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "enum": [
+                "workday_like",
+                "bamboo_like"
+              ],
+              "title": "Source",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncRunOut"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Run a sync from an HRIS source",
+        "tags": [
+          "default"
+        ]
+      }
+    },
     "/api/v1/employees/{employee_id}": {
       "get": {
         "operationId": "employees_get_employee_route__employee_id__get",
@@ -528,7 +814,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EmployeePublicOut"
+                  "$ref": "#/components/schemas/EmployeeHROut"
                 }
               }
             },
@@ -555,7 +841,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Get an employee (public view)",
+        "summary": "Get an employee",
         "tags": [
           "default"
         ]

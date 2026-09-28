@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reportline-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reportline-web
+  template:
+    metadata:
+      labels:
+        app: reportline-web
+    spec:
+      containers:
+        - name: web
+          image: reportline-web:latest
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reportline-web
+spec:
+  selector:
+    app: reportline-web
+  ports:
+    - port: 80
+      targetPort: 80

@@ -1,0 +1,100 @@
+:root {
+	color-scheme: light;
+	--surface-1: #fcfcfb;
+	--surface-2: #f9f9f7;
+	--text-primary: #0b0b0b;
+	--text-secondary: #52514e;
+	--text-muted: #898781;
+	--gridline: #e1e0d9;
+	--baseline: #c3c2b7;
+	--border: rgba(11, 11, 11, 0.1);
+
+	/* Categorical department accents - see docs/adr for the dataviz palette source. */
+	--dept-engineering: #2a78d6;
+	--dept-sales: #eb6834;
+	--dept-marketing: #1baf7a;
+	--dept-finance: #eda100;
+	--dept-people: #e87ba4;
+	--dept-executive: #008300;
+
+	--focus-ring: #2a78d6;
+
+	--font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		color-scheme: dark;
+		--surface-1: #1a1a19;
+		--surface-2: #0d0d0d;
+		--text-primary: #ffffff;
+		--text-secondary: #c3c2b7;
+		--text-muted: #898781;
+		--gridline: #2c2c2a;
+		--baseline: #383835;
+		--border: rgba(255, 255, 255, 0.1);
+
+		--dept-engineering: #3987e5;
+		--dept-sales: #d95926;
+		--dept-marketing: #199e70;
+		--dept-finance: #c98500;
+		--dept-people: #d55181;
+		--dept-executive: #008300;
+
+		--focus-ring: #86b6ef;
+	}
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--surface-1: #1a1a19;
+	--surface-2: #0d0d0d;
+	--text-primary: #ffffff;
+	--text-secondary: #c3c2b7;
+	--text-muted: #898781;
+	--gridline: #2c2c2a;
+	--baseline: #383835;
+	--border: rgba(255, 255, 255, 0.1);
+
+	--dept-engineering: #3987e5;
+	--dept-sales: #d95926;
+	--dept-marketing: #199e70;
+	--dept-finance: #c98500;
+	--dept-people: #d55181;
+	--dept-executive: #008300;
+
+	--focus-ring: #86b6ef;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	height: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--surface-2);
+	color: var(--text-primary);
+	font-family: var(--font-sans);
+}
+
+:focus-visible {
+	outline: 2px solid var(--focus-ring);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+		scroll-behavior: auto !important;
+	}
+}

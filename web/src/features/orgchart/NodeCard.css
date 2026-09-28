@@ -1,0 +1,98 @@
+.node-card-wrapper {
+	position: absolute;
+	transition: opacity 150ms ease;
+}
+
+.node-card {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 2px;
+	padding: 10px 14px;
+	background: var(--surface-1);
+	border: 1px solid var(--border);
+	border-left: 4px solid var(--text-muted);
+	border-radius: 8px;
+	box-shadow: 0 1px 2px rgba(11, 11, 11, 0.06);
+	cursor: pointer;
+	text-align: left;
+	font-family: inherit;
+	color: var(--text-primary);
+	transition:
+		box-shadow 120ms ease,
+		border-color 120ms ease;
+}
+
+.node-card:hover {
+	box-shadow: 0 2px 8px rgba(11, 11, 11, 0.12);
+	border-color: var(--focus-ring);
+}
+
+.node-card--vacant {
+	background: var(--surface-2);
+	border-style: dashed;
+	border-left-style: solid;
+}
+
+.node-card__title {
+	font-weight: 600;
+	font-size: 0.9rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.node-card__department {
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.node-card__occupant {
+	font-size: 0.8rem;
+	color: var(--text-secondary);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.node-card__badge {
+	display: inline-block;
+	width: fit-content;
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	border: 1px solid var(--baseline);
+	border-radius: 999px;
+	padding: 1px 8px;
+	margin-top: 2px;
+}
+
+.node-card__toggle {
+	position: absolute;
+	right: -10px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 24px;
+	height: 24px;
+	min-width: 24px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	background: var(--surface-1);
+	color: var(--text-secondary);
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.node-card__toggle:hover {
+	border-color: var(--focus-ring);
+	color: var(--text-primary);
+}

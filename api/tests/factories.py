@@ -49,6 +49,7 @@ def build_position(org_id: ObjectId, **overrides: Any) -> dict[str, Any]:
         "reports_to": [],
         "solid_manager_ids": [],
         "ancestor_ids": [],
+        "source_refs": [],
         "schema_version": 1,
         "created_at": now,
         "updated_at": now,

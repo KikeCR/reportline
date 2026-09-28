@@ -27,6 +27,7 @@ class PositionRepo(ScopedRepo):
         department: str,
         *,
         status: str = "active",
+        source_refs: list[dict[str, str]] | None = None,
         created_by: ObjectId | None = None,
         session: ClientSession | None = None,
     ) -> ObjectId:
@@ -42,11 +43,41 @@ class PositionRepo(ScopedRepo):
                 "reports_to": [],
                 "solid_manager_ids": [],
                 "ancestor_ids": [],
+                "source_refs": source_refs or [],
                 "schema_version": 1,
                 "created_at": now,
                 "updated_at": now,
                 "created_by": created_by,
                 "updated_by": created_by,
+            },
+            session=session,
+        )
+
+    def find_by_source_ref(
+        self, system: str, ref_id: str, *, session: ClientSession | None = None
+    ) -> Document | None:
+        return self.find_one(
+            {"source_refs": {"$elemMatch": {"system": system, "id": ref_id}}}, session=session
+        )
+
+    def update_fields(
+        self,
+        position_id: ObjectId,
+        *,
+        title: str,
+        department: str,
+        source_refs: list[dict[str, str]],
+        session: ClientSession | None = None,
+    ) -> None:
+        self.update_one(
+            {"_id": position_id},
+            {
+                "$set": {
+                    "title": title,
+                    "department": department,
+                    "source_refs": source_refs,
+                    "updated_at": datetime.now(UTC),
+                }
             },
             session=session,
         )

@@ -69,3 +69,33 @@ class EmployeeRepo(ScopedRepo):
         return self.find_one(
             {"source_refs": {"$elemMatch": {"system": system, "id": ref_id}}}, session=session
         )
+
+    def find_by_email(self, email: str, *, session: ClientSession | None = None) -> Document | None:
+        return self.find_one({"email": email}, session=session)
+
+    def update_fields(
+        self,
+        employee_id: ObjectId,
+        *,
+        name: str,
+        compensation_amount: Decimal,
+        compensation_currency: str,
+        source_refs: list[dict[str, str]],
+        session: ClientSession | None = None,
+    ) -> None:
+        now = datetime.now(UTC)
+        self.update_one(
+            {"_id": employee_id},
+            {
+                "$set": {
+                    "name": name,
+                    "compensation": {
+                        "amount": Decimal128(compensation_amount),
+                        "currency": compensation_currency,
+                    },
+                    "source_refs": source_refs,
+                    "updated_at": now,
+                }
+            },
+            session=session,
+        )

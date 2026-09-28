@@ -9,7 +9,14 @@ pytestmark = pytest.mark.integration
 
 
 def test_applying_from_empty_creates_every_collection(db):
-    for name in ("organizations", "positions", "employees", "assignments", "quarantine"):
+    for name in (
+        "organizations",
+        "positions",
+        "employees",
+        "assignments",
+        "quarantine",
+        "sync_runs",
+    ):
         assert name in db.list_collection_names()
 
 
@@ -22,14 +29,22 @@ def test_re_running_migrations_is_a_no_op(db):
 def test_migration_status_reports_every_migration_as_applied(db):
     status = migration_status(db)
 
-    assert len(status) == 5
+    assert len(status) == 7
     assert all(entry["applied"] for entry in status)
 
 
 def test_schema_migrations_are_recorded_with_version_name_checksum(db):
     records = list(db["schema_migrations"].find({}))
 
-    assert {r["version"] for r in records} == {"0001", "0002", "0003", "0004", "0005"}
+    assert {r["version"] for r in records} == {
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006",
+        "0007",
+    }
     for record in records:
         assert record["checksum"]
         assert record["applied_at"] is not None
@@ -79,6 +94,7 @@ def test_employees_without_any_source_ref_do_not_collide(db):
                 "ix_positions_org_solid_manager_ids",
                 "ix_positions_org_ancestor_ids",
                 "ix_positions_org_status",
+                "ux_positions_org_source_ref",
             },
         ),
         ("employees", {"ux_employees_org_source_ref"}),
@@ -87,6 +103,7 @@ def test_employees_without_any_source_ref_do_not_collide(db):
             {"ix_assignments_org_position_start", "ix_assignments_org_employee_current"},
         ),
         ("quarantine", {"ix_quarantine_org_created"}),
+        ("sync_runs", {"ix_sync_runs_org_started"}),
     ],
 )
 def test_expected_indexes_exist(db, collection, expected_index_names):

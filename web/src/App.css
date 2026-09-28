@@ -1,0 +1,79 @@
+.app-shell {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+}
+
+.app-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 20px;
+	background: var(--surface-1);
+	border-bottom: 1px solid var(--border);
+}
+
+.app-header h1 {
+	font-size: 1.1rem;
+	margin: 0;
+}
+
+.app-header__tabs {
+	display: flex;
+	gap: 4px;
+	margin-right: auto;
+	margin-left: 24px;
+}
+
+.app-header__tabs button {
+	padding: 6px 12px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	background: none;
+	font-family: inherit;
+	font-size: 0.85rem;
+	color: var(--text-secondary);
+	cursor: pointer;
+}
+
+.app-header__tabs button.is-active {
+	background: var(--surface-2);
+	color: var(--text-primary);
+	border-color: var(--border);
+}
+
+.app-header__org-field {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.8rem;
+	color: var(--text-secondary);
+}
+
+.app-header__org-field input {
+	font-family: inherit;
+	font-size: 0.85rem;
+	padding: 5px 8px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: var(--surface-1);
+	color: var(--text-primary);
+	width: 220px;
+}
+
+.app-main {
+	flex: 1;
+	overflow: hidden;
+}
+
+@media (max-width: 640px) {
+	.app-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.app-header__org-field input {
+		width: 100%;
+	}
+}

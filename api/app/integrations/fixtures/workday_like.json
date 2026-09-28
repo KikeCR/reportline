@@ -1,0 +1,32 @@
+{
+  "workers": [
+    {
+      "worker_id": "W-001",
+      "personal_info": { "name": "Priya Shah", "email": "priya.shah@example.com" },
+      "position": { "title": "CEO", "department": "Executive" },
+      "manager_worker_id": null,
+      "compensation": { "base_salary": 410000, "currency": "USD" }
+    },
+    {
+      "worker_id": "W-002",
+      "personal_info": { "name": "Tomas Rivera", "email": "tomas.rivera@example.com" },
+      "position": { "title": "VP Engineering", "department": "Engineering" },
+      "manager_worker_id": "W-001",
+      "compensation": { "base_salary": 255000, "currency": "USD" }
+    },
+    {
+      "worker_id": "W-003",
+      "personal_info": { "name": "Missing Email Worker" },
+      "position": { "title": "Staff Engineer", "department": "Engineering" },
+      "manager_worker_id": "W-002",
+      "compensation": { "base_salary": 190000, "currency": "USD" }
+    },
+    {
+      "worker_id": "W-004",
+      "personal_info": { "name": "Orphan Reference", "email": "orphan.ref@example.com" },
+      "position": { "title": "Analyst", "department": "Finance" },
+      "manager_worker_id": "W-999",
+      "compensation": { "base_salary": 98000, "currency": "USD" }
+    }
+  ]
+}

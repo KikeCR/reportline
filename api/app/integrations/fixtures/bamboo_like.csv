@@ -1,0 +1,6 @@
+employee_id,full_name,work_email,job_title,department,supervisor_email,annual_salary
+B-001,Carol Nakamura,carol.nakamura@example.com,VP Sales,Sales,,260000
+B-002,Dave Okafor,dave.okafor@example.com,Account Executive,Sales,carol.nakamura@example.com,95000
+B-003,,eve.lindqvist@example.com,Marketing Specialist,Marketing,carol.nakamura@example.com,90000
+B-004,Cycle Manager A,cycle.a@example.com,Regional Manager A,Sales,cycle.b@example.com,140000
+B-005,Cycle Manager B,cycle.b@example.com,Regional Manager B,Sales,cycle.a@example.com,140000

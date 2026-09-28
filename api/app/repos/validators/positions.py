@@ -29,6 +29,7 @@ POSITIONS_VALIDATOR: dict[str, Any] = {
             "reports_to",
             "solid_manager_ids",
             "ancestor_ids",
+            "source_refs",
             "schema_version",
             "created_at",
             "updated_at",
@@ -51,6 +52,18 @@ POSITIONS_VALIDATOR: dict[str, Any] = {
                 "items": {"bsonType": "objectId"},
             },
             "ancestor_ids": {"bsonType": "array", "items": {"bsonType": "objectId"}},
+            "source_refs": {
+                "bsonType": "array",
+                "items": {
+                    "bsonType": "object",
+                    "required": ["system", "id"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "system": {"bsonType": "string", "minLength": 1},
+                        "id": {"bsonType": "string", "minLength": 1},
+                    },
+                },
+            },
             "schema_version": {"bsonType": "int"},
             "created_at": {"bsonType": "date"},
             "updated_at": {"bsonType": "date"},

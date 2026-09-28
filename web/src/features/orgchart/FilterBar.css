@@ -1,0 +1,61 @@
+.filter-bar {
+	display: flex;
+	align-items: flex-end;
+	gap: 16px;
+	flex-wrap: wrap;
+	padding: 12px 16px;
+	background: var(--surface-1);
+	border-bottom: 1px solid var(--border);
+}
+
+.filter-bar__group {
+	display: flex;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.filter-bar__toggle {
+	padding: 6px 14px;
+	background: var(--surface-1);
+	color: var(--text-secondary);
+	border: none;
+	font-family: inherit;
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+
+.filter-bar__toggle--active {
+	background: var(--dept-engineering);
+	color: white;
+}
+
+.filter-bar__field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+}
+
+.filter-bar__field select,
+.filter-bar__field input {
+	font-family: inherit;
+	font-size: 0.85rem;
+	padding: 5px 8px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: var(--surface-1);
+	color: var(--text-primary);
+}
+
+.filter-bar__reset {
+	align-self: center;
+	background: none;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 5px 10px;
+	font-size: 0.8rem;
+	color: var(--text-secondary);
+	cursor: pointer;
+}

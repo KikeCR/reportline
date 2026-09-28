@@ -1,0 +1,71 @@
+# Minimal, demonstration-only - this project has no real cluster to deploy
+# to. Verify with: kubectl kustomize k8s/base
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reportline-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reportline-api
+  template:
+    metadata:
+      labels:
+        app: reportline-api
+    spec:
+      containers:
+        - name: api
+          image: reportline-api:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: reportline-api-config
+            - secretRef:
+                name: reportline-api-secrets
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reportline-api
+spec:
+  selector:
+    app: reportline-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reportline-api-config
+data:
+  MONGODB_DB_NAME: reportline
+  LOG_LEVEL: INFO
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: reportline-api-secrets
+type: Opaque
+stringData:
+  SECRET_KEY: changeme
+  MONGODB_URI: mongodb://changeme

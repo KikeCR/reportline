@@ -1,0 +1,26 @@
+.org-chart {
+	position: relative;
+}
+
+.org-chart__edges {
+	position: absolute;
+	top: 0;
+	left: 0;
+	overflow: visible;
+	pointer-events: none;
+}
+
+.org-chart__edge {
+	stroke: var(--baseline);
+	stroke-width: 2px;
+	stroke-linecap: round;
+	fill: none;
+}
+
+.org-chart__edge--primary {
+	stroke: var(--text-secondary);
+}
+
+.org-chart__edge--dotted {
+	stroke-dasharray: 4 4;
+}

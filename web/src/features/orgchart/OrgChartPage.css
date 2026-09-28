@@ -1,0 +1,32 @@
+.org-chart-page {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.org-chart-page__canvas {
+	position: relative;
+	flex: 1;
+	overflow: auto;
+	padding: 32px;
+}
+
+.org-chart-page__scroll {
+	transition: opacity 150ms ease;
+}
+
+.org-chart-page__status {
+	color: var(--text-secondary);
+	font-size: 0.9rem;
+}
+
+.org-chart-page__empty {
+	padding: 32px;
+	color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+	.org-chart-page__canvas {
+		padding: 12px;
+	}
+}

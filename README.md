@@ -1,83 +1,116 @@
 # Reportline
 
-A multi-tenant org chart service. See `CLAUDE.md` for architecture rules and
-`docs/adr/` for design decisions. Full setup, screenshots, and demo story
-land in Phase 8 - this section covers what's actually running today
-(Phase 1: backend core; Phase 2: the API and contract pipeline).
+A multi-tenant org chart service, run locally (no deploy target). See
+`CLAUDE.md` for architecture rules and `docs/adr/` for design decisions.
 
 ## Status
 
-- Phase 0: SaveState conventions ADR - done (`docs/adr/0000-conventions-from-savestate.md`)
-- Phase 1: Backend core and the org graph - done
-- Phase 2: API and the contract pipeline - done
-- Phases 3-8: not started yet
+- Phase 0-2: SaveState conventions, backend core/org graph, API + contract pipeline - done
+- Phase 3: React org chart viewer - done
+- Phase 4: **simplified by request** - no auth/roles/JWT. The app runs
+  fully open (every request has admin-level visibility, including
+  compensation) - see "Descoped" below.
+- Phase 5: HRIS sync adapters + quarantine - done
+- Phase 6: Docker/K8s manifests/CI - done, kept intentionally minimal (no
+  real cluster or deploy target - see "Running it locally" and "Descoped")
+- Phase 7 (LLM "ask" feature): **skipped by request**
+- Phase 8: this README is the polish pass, kept intentionally light
 
-## Backend quickstart
+## Running it locally
+
+Backend:
 
 ```bash
 cd api
 python3.12 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
+cp ../.env.example .env   # fill in SECRET_KEY; MONGODB_URI must point at a reachable replica set
+.venv/bin/python -m migrations
+.venv/bin/python -m scripts.seed
+FLASK_APP=app .venv/bin/python -m flask run --port 5001
 ```
+
+A local dev Mongo (single-node, replica-set-enabled, no auth) can be started with:
 
 ```bash
-make test     # spins up its own MongoDB replica-set container per test run
-make lint     # ruff + mypy strict
-make openapi  # regenerates api/openapi.json (needs api/.env - copy .env.example there first)
+docker run -d --name reportline-dev-mongo -p 27017:27017 mongodb/mongodb-atlas-local:latest
 ```
 
-Running the migrations, the seed script, or the live API against a real dev
-database requires `MONGODB_URI` and `SECRET_KEY` (see `.env.example`) -
-there's no docker-compose Mongo yet (that's Phase 6), so point
-`MONGODB_URI` at any MongoDB replica set you have locally in the meantime:
+then set `MONGODB_URI=mongodb://localhost:27017/reportline?directConnection=true` in `api/.env`.
+
+Frontend:
 
 ```bash
-make migrate
-make migrate-status
-make seed                                        # deterministic demo data for two tenants
-cd api && .venv/bin/python -m scripts.seed --reset  # drop and recreate both tenants
+cd web
+npm install
+npm run dev   # proxies /api/v1, /healthz, /readyz to localhost:5001
 ```
 
-`scripts/explain_queries.py` prints index-usage summaries for the key
-queries in `docs/access-patterns.md` once seed data exists:
+Open the printed Vite URL, paste a seeded org id (printed by `scripts.seed`,
+or check Mongo directly) into the "Tenant id" field, and the chart loads.
 
 ```bash
-cd api && .venv/bin/python -m scripts.explain_queries
+make test   # backend: spins up its own MongoDB container per run
+make lint   # backend: ruff + mypy strict
+cd web && npm run lint && npm run typecheck && npm run test
 ```
 
-## API (Phase 2)
+### Or via Docker Compose
+
+```bash
+docker compose up --build          # mongo + api + web
+docker compose run --rm seed       # migrate + seed, one-off
+```
+
+`web` is served by nginx on :5173, proxying `/api/v1` to `api:8000` inside
+the compose network - open http://localhost:5173. Mongo here is unauthenticated
+(single-node replica set), for local simplicity only - see "Descoped".
+
+### Kubernetes (demonstration only - no real cluster)
+
+```bash
+kubectl kustomize k8s/base   # renders the manifests; nothing to apply them to
+```
+
+## API
 
 All endpoints are under `/api/v1` except `/healthz`/`/readyz`. Every
-tenant-scoped route reads an `X-Org-Id` header - see
-`docs/adr/0002-api-contract.md` for why (it's a documented, single-swap-point
-placeholder for Phase 4's JWT, not a long-term auth mechanism).
+tenant-scoped route reads an `X-Org-Id` header (no auth - see "Descoped").
 
 | Method | Path | |
 |---|---|---|
-| GET | `/healthz` | dependency-free liveness check |
-| GET | `/readyz` | checks MongoDB connectivity |
+| GET | `/healthz` / `/readyz` | liveness / Mongo readiness |
 | GET | `/api/v1/org/positions/{id}` | a position |
 | GET | `/api/v1/org/positions/{id}/descendants` | solid-line subtree |
 | GET | `/api/v1/org/graph?view=positions\|people&as_of=YYYY-MM-DD` | the full tenant graph |
-| POST | `/api/v1/org/reporting-lines` | add a reporting line |
-| DELETE | `/api/v1/org/reporting-lines` | remove a reporting line |
-| GET | `/api/v1/employees/{id}` | an employee (public view only, for now) |
+| POST` / `DELETE` | `/api/v1/org/reporting-lines` | add / remove a reporting line |
+| GET | `/api/v1/employees/{id}` | an employee, full view (no field-level gating - see "Descoped") |
+| POST | `/api/v1/admin/sync/{source}` | run a sync (`workday_like` or `bamboo_like` fixture data) |
+| GET | `/api/v1/admin/sync/runs` | past sync run counts/duration |
+| GET | `/api/v1/admin/quarantine` | records a sync couldn't resolve, and why |
 
-Every error response is `{"error": "<code>", "message": "...", "details": {...}}`
-(`ErrorOut`, documented in `api/openapi.json`), whether it came from a
-business-rule rejection or a malformed request.
+Every error response is `{"error": "<code>", "message": "...", "details": {...}}`.
 
-## Known deferrals (not TODOs left in code - tracked here per CLAUDE.md)
+The "Admin" tab in the UI runs a sync and shows both tables live. The two
+adapters read from fixture files (`api/app/integrations/fixtures/`), not a
+live HRIS - each includes deliberately messy records (a missing email, an
+unresolved manager reference, a manager cycle) to exercise quarantine.
 
-- `EmployeePublicOut` is the only shape `GET /employees/{id}` returns for
-  now - `EmployeeHROut` (adds compensation) exists as a model but has no
-  route branch to it yet, since that requires Phase 4's role check.
-- `org_graph.get_graph`'s `viewer_scope` (permission filtering) isn't
-  implemented - it needs Phase 4's permission model to filter by.
-- The typed web client + Zod schemas (brief's Phase 2 "web client wrapper")
-  move to the start of Phase 3 instead, built alongside the real `web/`
-  scaffold rather than as a throwaway shell Phase 3 would immediately
-  restructure - see ADR 0002.
-- No docker-compose Mongo yet (Phase 6) - `make migrate`/`make migrate-status`/
-  `make seed`/the live API need a `MONGODB_URI` you provide yourself until
-  then.
+## Descoped by request, not forgotten
+
+- **Auth/roles/permission scoping (original Phase 4)**: not built. No JWT,
+  no login, no `org_admin`/`hr_partner`/`manager`/`employee` roles, no
+  manager-subtree filtering. `X-Org-Id` (a plain header, entered by hand in
+  the UI) is the only scoping - every request sees everything in that
+  tenant, including employee compensation. Add real auth later by
+  replacing how `X-Org-Id`/`useOrg` are populated; every call site already
+  goes through that one seam.
+- **Kubernetes/CI (Phase 6)**: built, but minimal by request - `k8s/base`
+  has just Deployment/Service/ConfigMap/Secret for api and web (no Ingress,
+  HPA, or overlays), verified with `kubectl kustomize` only (no cluster to
+  apply to). CI is two path-filtered GitHub Actions workflows
+  (`backend-ci.yml`, `frontend-ci.yml`) with no preview-deploy workflow.
+- **LLM "ask" feature (original Phase 7)**: not built.
+- **Playwright smoke test / full frontend component coverage**: the brief's
+  explicit ask (NodeCard + graph data mapping tests) is covered; broader UI
+  integration tests weren't added.

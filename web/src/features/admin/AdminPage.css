@@ -1,0 +1,47 @@
+.admin-page {
+	padding: 24px;
+	overflow: auto;
+	height: 100%;
+}
+
+.admin-page section {
+	margin-bottom: 32px;
+}
+
+.admin-page h2 {
+	font-size: 1rem;
+	margin-bottom: 8px;
+}
+
+.admin-page__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.admin-page__actions button {
+	padding: 6px 14px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: var(--surface-1);
+	cursor: pointer;
+	font-family: inherit;
+}
+
+.admin-page__table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.85rem;
+}
+
+.admin-page__table th,
+.admin-page__table td {
+	text-align: left;
+	padding: 6px 10px;
+	border-bottom: 1px solid var(--gridline);
+}
+
+.admin-page__empty {
+	padding: 24px;
+	color: var(--text-secondary);
+}

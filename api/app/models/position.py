@@ -11,6 +11,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.common import MongoBaseModel, PyObjectId
+from app.models.employee import SourceRef
 
 # Real organizations don't exceed this; it also bounds reports_to's strict
 # subset solid_manager_ids. See docs/data-model.md's "Why reports_to is
@@ -39,6 +40,7 @@ class Position(MongoBaseModel):
     reports_to: list[ReportsToEdge] = Field(default_factory=list, max_length=MAX_REPORTS_TO)
     solid_manager_ids: list[PyObjectId] = Field(default_factory=list, max_length=MAX_REPORTS_TO)
     ancestor_ids: list[PyObjectId] = Field(default_factory=list)
+    source_refs: list[SourceRef] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _at_most_one_primary_solid_edge(self) -> Self:

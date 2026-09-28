@@ -16,7 +16,8 @@ def _seed_org(db) -> ObjectId:
     return organization["_id"]
 
 
-def test_get_employee_returns_the_public_view_without_compensation(client, db):
+def test_get_employee_returns_full_hr_view(client, db):
+    """No auth/roles for now (descoped) - every request sees compensation."""
     org_id = _seed_org(db)
     position_id = PositionRepo(org_id).create("VP Engineering", "Engineering")
     employee_id = EmployeeRepo(org_id).create(
@@ -31,8 +32,8 @@ def test_get_employee_returns_the_public_view_without_compensation(client, db):
         "id": str(employee_id),
         "name": "Ada Lovelace",
         "title": "VP Engineering",
+        "compensation": {"amount": "150000", "currency": "USD"},
     }
-    assert "compensation" not in response.json
 
 
 def test_get_employee_404s_for_unknown_id(client, db):

@@ -1,0 +1,30 @@
+name: backend-ci
+
+on:
+  push:
+    paths: ["api/**"]
+  pull_request:
+    paths: ["api/**"]
+
+defaults:
+  run:
+    working-directory: api
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy
+      # Spins up its own MongoDB replica-set container via testcontainers -
+      # ubuntu-latest ships Docker, so no `services:` block is needed. This
+      # also runs the openapi.json drift check (tests/contract/).
+      - run: pytest
+      - run: docker build -t reportline-api .
