@@ -1,5 +1,9 @@
 .org-chart {
 	position: relative;
+	/* Center the tree horizontally in the canvas when it's narrower than the
+	   viewport (e.g. after a department filter); auto-margins resolve to 0
+	   when it's wider, leaving normal left-anchored scrolling. */
+	margin: 0 auto;
 }
 
 .org-chart__edges {

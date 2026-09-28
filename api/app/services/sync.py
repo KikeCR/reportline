@@ -164,13 +164,11 @@ def run_sync(org_id: ObjectId, adapter: Adapter) -> SyncResult:
             continue
 
         try:
-            if current_primary:
-                org_graph.remove_reporting_line(
-                    org_id, current_primary["position_id"], report_position_id
-                )
-            org_graph.add_reporting_line(
-                org_id, manager_position["_id"], report_position_id, "solid", True
-            )
+            # move_subtree replaces the old primary edge (if any) with the new
+            # one inside a single transaction - add_reporting_line +
+            # remove_reporting_line as two separate calls would let a
+            # rejected add leave the position with no manager at all.
+            org_graph.move_subtree(org_id, report_position_id, manager_position["_id"])
         except ReportlineError as exc:
             quarantine_repo.create(
                 worker.source_system,

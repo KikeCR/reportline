@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useGraph } from '../../api/queries'
 import { useOrg } from '../../context/useOrg'
@@ -22,6 +22,7 @@ export function OrgChartPage() {
 		() => new Set(),
 	)
 	const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+	const canvasRef = useRef<HTMLDivElement>(null)
 
 	const isToday = asOf === today()
 	const graphQuery = useGraph(orgId, {
@@ -43,6 +44,19 @@ export function OrgChartPage() {
 		collapsedIds,
 		departmentHiddenIds,
 	)
+
+	// `margin: auto` on the chart centers it when it fits the canvas, but a
+	// tree wider than the viewport (common - even a single department can
+	// spread past 2000px) needs its scroll position centered too, or the
+	// canvas just shows the left-anchored slice.
+	useEffect(() => {
+		const canvas = canvasRef.current
+		if (!canvas || !layout) return
+		canvas.scrollLeft = Math.max(
+			0,
+			(canvas.scrollWidth - canvas.clientWidth) / 2,
+		)
+	}, [layout])
 
 	const departments = useMemo(() => {
 		const set = new Set((graphQuery.data?.nodes ?? []).map((n) => n.department))
@@ -85,7 +99,7 @@ export function OrgChartPage() {
 				onAsOfChange={setAsOf}
 			/>
 
-			<div className="org-chart-page__canvas">
+			<div className="org-chart-page__canvas" ref={canvasRef}>
 				{graphQuery.isLoading && (
 					<p className="org-chart-page__status">Loading…</p>
 				)}

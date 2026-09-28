@@ -123,15 +123,16 @@ def get_graph(org_id: ObjectId, *, view: str = "positions", as_of: date | None =
     occupants: dict[ObjectId, list[Occupant]] = {}
     if view == "people":
         assignment_repo = AssignmentRepo(org_id)
-        assignments_by_position: dict[ObjectId, list[Document]] = {}
-        for node in nodes:
-            if as_of is not None:
-                as_of_dt = datetime.combine(as_of, time.min, tzinfo=UTC)
-                assignments_by_position[node.id] = assignment_repo.as_of_for_position(
-                    node.id, as_of_dt
-                )
-            else:
-                assignments_by_position[node.id] = assignment_repo.current_for_position(node.id)
+        position_ids = [node.id for node in nodes]
+        if as_of is not None:
+            as_of_dt = datetime.combine(as_of, time.min, tzinfo=UTC)
+            assignments = assignment_repo.as_of_for_positions(position_ids, as_of_dt)
+        else:
+            assignments = assignment_repo.current_for_positions(position_ids)
+
+        assignments_by_position: dict[ObjectId, list[Document]] = {node.id: [] for node in nodes}
+        for assignment in assignments:
+            assignments_by_position[assignment["position_id"]].append(assignment)
 
         employee_ids = {
             assignment["employee_id"]

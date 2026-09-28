@@ -1,7 +1,9 @@
 """``python -m migrations`` applies pending migrations; ``--status`` lists them.
 
-This is what ``make migrate`` / ``make migrate-status`` run, and what a
-Kubernetes Job runs as an init step before rollout (see docs/runbook.md).
+This is what ``make migrate`` / ``make migrate-status`` run, and what
+``docker compose run --rm seed`` runs before seeding - see docs/runbook.md
+for the operational procedures (recovering from a checksum mismatch,
+resetting the local environment).
 """
 
 from __future__ import annotations

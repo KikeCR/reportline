@@ -161,6 +161,28 @@ concurrently - embedding on either side can't represent that cleanly.
 | `ix_assignments_org_position_start` | `{org_id: 1, position_id: 1, start_date: 1}` | A1, A2 | occupant-of-a-position lookups, current and as-of-date |
 | `ix_assignments_org_employee_current` | `{org_id: 1, employee_id: 1, end_date: 1}` | A3 | an employee's current (and past) assignments, including the dual-role case |
 
+## `sync_runs`
+
+Created in Phase 5, alongside `services/sync.py` - a record of one
+`run_sync` call, for `GET /admin/sync/runs`. No `schema_version` /
+`created_by` / `updated_by` - it's an immutable log record, not an entity
+that gets edited later.
+
+| Field | Type | Constraint |
+|---|---|---|
+| `_id` | `ObjectId` | |
+| `org_id` | `ObjectId` | required |
+| `source` | `string` | which adapter produced this run (`"workday_like"`, `"bamboo_like"`) |
+| `created_count`, `updated_count`, `unchanged_count`, `quarantined_count` | `int` | per-worker outcome counts for the run |
+| `duration_ms` | `int` | wall-clock duration of the run |
+| `started_at` | `Date` | |
+
+### Indexes
+
+| Name | Keys | Serves | Justification |
+|---|---|---|---|
+| `ix_sync_runs_org_started` | `{org_id: 1, started_at: -1}` | S2 | `GET /admin/sync/runs`, newest first |
+
 ## `quarantine`
 
 Created in Phase 1 (part of the core data model); written to and read
