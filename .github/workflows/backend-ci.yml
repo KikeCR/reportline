@@ -25,6 +25,7 @@ jobs:
       - run: mypy
       # Spins up its own MongoDB replica-set container via testcontainers -
       # ubuntu-latest ships Docker, so no `services:` block is needed. This
-      # also runs the openapi.json drift check (tests/contract/).
-      - run: pytest
+      # also runs the openapi.json drift check (tests/contract/), and
+      # --cov applies pyproject.toml's `fail_under = 85`.
+      - run: pytest --cov --cov-report=term-missing
       - run: docker build -t reportline-api .

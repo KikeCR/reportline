@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import UTC, datetime
 
 from bson import ObjectId
@@ -58,6 +59,38 @@ class AssignmentRepo(ScopedRepo):
             self.find(
                 {
                     "position_id": position_id,
+                    "start_date": {"$lte": as_of},
+                    "$or": [{"end_date": None}, {"end_date": {"$gte": as_of}}],
+                },
+                session=session,
+            )
+        )
+
+    def current_for_positions(
+        self, position_ids: Iterable[ObjectId], *, session: ClientSession | None = None
+    ) -> list[Document]:
+        """A1b: current occupant(s) of many positions in one query - the
+        graph's "people" view batches through this instead of A1 per node,
+        to keep the whole-graph read at a small constant number of queries
+        regardless of headcount (see ADR 0002)."""
+        return list(
+            self.find(
+                {"position_id": {"$in": list(position_ids)}, "end_date": None}, session=session
+            )
+        )
+
+    def as_of_for_positions(
+        self,
+        position_ids: Iterable[ObjectId],
+        as_of: datetime,
+        *,
+        session: ClientSession | None = None,
+    ) -> list[Document]:
+        """A2b: batched form of A2, for the same reason as A1b."""
+        return list(
+            self.find(
+                {
+                    "position_id": {"$in": list(position_ids)},
                     "start_date": {"$lte": as_of},
                     "$or": [{"end_date": None}, {"end_date": {"$gte": as_of}}],
                 },

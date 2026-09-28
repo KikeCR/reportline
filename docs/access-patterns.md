@@ -37,10 +37,19 @@ tenants).
 
 | # | Query | Filter | Sort | Projection | Cardinality | Used by |
 |---|---|---|---|---|---|---|
-| A1 | Current occupant(s) of a position | `{org_id, position_id, end_date: null}` | - | `{employee_id, fte, is_primary}` | usually 1, up to 2 for shared/part-time roles | "people" view of the graph, node detail drawer |
-| A2 | Occupant(s) as of a date | `{org_id, position_id, start_date: {$lte: as_of}, $or: [{end_date: null}, {end_date: {$gte: as_of}}]}` | - | `{employee_id, fte, is_primary}` | usually 1-2 | `GET /org/graph?as_of=...` |
+| A1 | Current occupant(s) of a position | `{org_id, position_id, end_date: null}` | - | `{employee_id, fte, is_primary}` | usually 1, up to 2 for shared/part-time roles | node detail drawer; `services/sync.py`'s per-worker pass 1 |
+| A1b | Current occupant(s) of many positions in one query | `{org_id, position_id: {$in: [...]}, end_date: null}` | - | `{employee_id, fte, is_primary, position_id}` | one row per occupied position | "people" view of the graph (`get_graph`) - batched so the whole-graph read stays at a small constant number of queries (ADR 0002), not one query per position |
+| A2 | Occupant(s) as of a date | `{org_id, position_id, start_date: {$lte: as_of}, $or: [{end_date: null}, {end_date: {$gte: as_of}}]}` | - | `{employee_id, fte, is_primary}` | usually 1-2 | single-position as-of lookups (none currently exposed as an endpoint) |
+| A2b | Batched form of A2 | same as A2 with `position_id: {$in: [...]}` | - | same as A1b | one row per occupied position as of that date | `GET /org/graph?as_of=...` |
 | A3 | Current assignments for an employee | `{org_id, employee_id, end_date: null}` | - | `{position_id, fte, is_primary}` | usually 1, up to 2 (dual-role case) | employee detail, "which position(s) does this person hold" |
 | A4 | Insert / end-date an assignment | point insert / `findOneAndUpdate` by `{_id, org_id}` | - | - | 1 | position moves, terminations, sync writes |
+
+## sync_runs
+
+| # | Query | Filter | Sort | Projection | Cardinality | Used by |
+|---|---|---|---|---|---|---|
+| S1 | Insert a run record | point insert | - | - | 1 | `services/sync.py`, once per `run_sync` call |
+| S2 | List runs for a tenant | `{org_id}` | `started_at desc` | full doc | small-to-moderate | `GET /admin/sync/runs` |
 
 ## quarantine
 

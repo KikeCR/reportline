@@ -4,8 +4,8 @@ dev:
 	docker compose up --build
 
 test:
-	cd api && .venv/bin/pytest
-	cd web && npm run test
+	cd api && .venv/bin/pytest --cov --cov-report=term-missing
+	cd web && npm run test:coverage
 
 lint:
 	cd api && .venv/bin/ruff check .

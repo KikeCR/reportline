@@ -16,6 +16,7 @@ htmlcov/
 node_modules/
 dist/
 web/src/api/schema.d.ts.tmp
+web/coverage/
 
 # OS
 .DS_Store
