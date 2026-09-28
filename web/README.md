@@ -1,32 +1,40 @@
-# React + TypeScript + Vite
+# Reportline frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Vite + React 19 + TypeScript (strict), TanStack Query, and `elkjs` for the
+org chart's layered graph layout. See the repo root [README](../README.md)
+for how to run the whole stack, and [CLAUDE.md](../CLAUDE.md) for the
+architecture rules.
 
-Currently, two official plugins are available:
+## Layout
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"plugins": ["react", "typescript", "oxc"],
-	"options": {
-		"typeAware": true
-	},
-	"rules": {
-		"react/rules-of-hooks": "error",
-		"react/only-export-components": ["warn", { "allowConstantExport": true }]
-	}
-}
+```
+src/
+  api/            fetch client, Zod schemas validated at the API boundary,
+                  generated OpenAPI types (schema.d.ts - never hand-edited)
+  context/        OrgContext/OrgProvider - the current tenant (X-Org-Id)
+  features/
+    orgchart/     the graph canvas, filters, detail drawer
+    admin/        HRIS sync + quarantine tables
+  test/           setup, a shared render helper, Page Objects
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Commands
+
+```bash
+npm run dev          # Vite dev server on :5173, proxies /api/v1 to :5001
+npm run build         # tsc -b + production build
+npm run typecheck     # tsc -b only
+npm run lint          # ESLint
+npm run test          # Vitest
+npm run test:coverage # Vitest with coverage (thresholds in vite.config.ts)
+npm run types         # regenerate src/api/schema.d.ts from ../api/openapi.json
+```
+
+## Contract with the backend
+
+`src/api/schema.d.ts` is generated from `api/openapi.json` via
+`openapi-typescript` - never hand-edited. `src/api/schemas.ts` defines Zod
+schemas for every response the app reads, each checked against the
+generated type at compile time (`Expect<Equal<z.infer<typeof X>,
+components['schemas']['X']>>`), so a drifted Zod schema fails `tsc`, not
+just at runtime.

@@ -17,6 +17,7 @@ from typing import Any
 from bson import ObjectId
 from pydantic import ValidationError
 
+from app.db import Document
 from app.errors import ReportlineError
 from app.integrations.base import Adapter, CanonicalWorker
 from app.repos import AssignmentRepo, EmployeeRepo, PositionRepo, QuarantineRepo, SyncRunRepo
@@ -67,7 +68,8 @@ def run_sync(org_id: ObjectId, adapter: Adapter) -> SyncResult:
         try:
             canonical_workers.append(adapter.to_canonical(raw))
         except ValidationError as exc:
-            quarantine_repo.create(adapter.source_name, raw, [str(e) for e in exc.errors()])
+            if not quarantine_repo.exists_for_raw(adapter.source_name, raw):
+                quarantine_repo.create(adapter.source_name, raw, [str(e) for e in exc.errors()])
             quarantined += 1
 
     created = updated = unchanged = 0
@@ -142,11 +144,9 @@ def run_sync(org_id: ObjectId, adapter: Adapter) -> SyncResult:
             worker.manager_source_id,
         )
         if manager_position is None:
-            quarantine_repo.create(
-                worker.source_system,
-                {"source_id": worker.source_id, "manager_source_id": worker.manager_source_id},
-                ["unresolved manager reference"],
-            )
+            raw = {"source_id": worker.source_id, "manager_source_id": worker.manager_source_id}
+            if not quarantine_repo.exists_for_raw(worker.source_system, raw):
+                quarantine_repo.create(worker.source_system, raw, ["unresolved manager reference"])
             quarantined += 1
             continue
 
@@ -170,11 +170,9 @@ def run_sync(org_id: ObjectId, adapter: Adapter) -> SyncResult:
             # rejected add leave the position with no manager at all.
             org_graph.move_subtree(org_id, report_position_id, manager_position["_id"])
         except ReportlineError as exc:
-            quarantine_repo.create(
-                worker.source_system,
-                {"source_id": worker.source_id, "manager_source_id": worker.manager_source_id},
-                [str(exc)],
-            )
+            raw = {"source_id": worker.source_id, "manager_source_id": worker.manager_source_id}
+            if not quarantine_repo.exists_for_raw(worker.source_system, raw):
+                quarantine_repo.create(worker.source_system, raw, [str(exc)])
             quarantined += 1
 
     duration_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
@@ -196,3 +194,11 @@ def run_sync(org_id: ObjectId, adapter: Adapter) -> SyncResult:
         duration_ms=duration_ms,
         started_at=started,
     )
+
+
+def list_sync_runs(org_id: ObjectId) -> list[Document]:
+    return SyncRunRepo(org_id).list_for_org()
+
+
+def list_quarantine(org_id: ObjectId) -> list[Document]:
+    return QuarantineRepo(org_id).list_for_org()

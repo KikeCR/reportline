@@ -24,6 +24,7 @@ tenants).
 | P8 | Root positions of a tenant | `{org_id, reports_to: {$size: 0}}` | - | `{_id}` | tiny (1-2) | `org_graph.get_graph`'s `root_ids` |
 | P9 | Subtree fetch for `ancestor_ids` recompute | `{org_id, _id: {$in: subtree_position_ids}}` | - | `{_id, ancestor_ids, reports_to}` | affected subtree only | `org_graph.add_reporting_line` / `move_subtree`, inside the mutation transaction |
 | P10 | Optimistic concurrency check + update | `findOneAndUpdate({_id, org_id, graph_version: expected_version}, {$set: ..., $inc: {graph_version: 1}})` | - | - | 1 | every graph mutation - a mismatch means a concurrent edit happened; the caller retries or fails cleanly |
+| P11 | Dedup by source system + id | `{org_id, source_refs: {$elemMatch: {system, id}}}` - same `$elemMatch` requirement as E2, for the same reason | - | full doc | 0 or 1 (enforced unique) | `services/sync.py` upsert path (Phase 5), added by migration 0006 alongside `positions.source_refs` |
 
 ## employees
 

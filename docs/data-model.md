@@ -63,6 +63,7 @@ No secondary indexes - every lookup is by `_id`.
 | `reports_to` | `array<{position_id: ObjectId, relation: "solid"\|"dotted", is_primary: bool}>` | **capped at 8 entries** (see below); at most one entry may have `relation: "solid", is_primary: true` |
 | `solid_manager_ids` | `array<ObjectId>` | denormalized: exactly the `position_id`s from `reports_to` where `relation == "solid"`. Capped at 8 for the same reason as `reports_to`, since it's a strict subset of it |
 | `ancestor_ids` | `array<ObjectId>` | denormalized union of every ancestor reachable via **any** edge type (solid or dotted). Bounded by max graph depth, not fan-out - see `MAX_GRAPH_DEPTH` below |
+| `source_refs` | `array<{system: string, id: string}>` | added by migration 0006 (Phase 5) - a position gets one of these per HRIS source it's synced from, mirroring `employees.source_refs`, so `services/sync.py` can upsert a position idempotently by `(source_system, source_id)` instead of matching on `title`/`department` |
 | `graph_version` | *(none - lives on `organizations`, see above)* | |
 | `schema_version`, `created_at`, `updated_at`, `created_by`, `updated_by` | - | standard fields |
 
@@ -102,6 +103,7 @@ a fixed embedded shape.
 | `ix_positions_org_solid_manager_ids` | `{org_id: 1, solid_manager_ids: 1}` | P5, and is the index MongoDB uses for `$graphLookup`'s `connectToField` during descendant traversal (P2) | this is the hot index - every `get_descendants` call and every graph edit's subtree walk depends on it |
 | `ix_positions_org_ancestor_ids` | `{org_id: 1, ancestor_ids: 1}` | P3, P6 | P6 (manager-role permission scoping) runs on nearly every request a `manager` makes - this index is load-bearing for authorization, not just a convenience |
 | `ix_positions_org_status` | `{org_id: 1, status: 1}` | P7 | excluding closed positions from the full-graph read |
+| `ux_positions_org_source_ref` | unique `{org_id: 1, "source_refs.system": 1, "source_refs.id": 1}`, partial filter `{"source_refs.0": {$exists: true}}` | P11 | same reasoning as `employees`' `ux_employees_org_source_ref` (E2) - a source system's id must map to exactly one position per org, and the partial filter avoids false collisions between positions with no `source_refs` at all |
 
 No index is added for P8 (root positions, `reports_to: {$size: 0}`) - array
 size predicates don't use a normal index well, and at per-tenant cardinality

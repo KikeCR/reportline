@@ -15,8 +15,7 @@ from app.models.api.admin import (
     SyncSourcePath,
 )
 from app.models.api.common import ErrorOut, TenantHeader
-from app.repos import QuarantineRepo, SyncRunRepo
-from app.services.sync import run_sync
+from app.services.sync import list_quarantine, list_sync_runs, run_sync
 
 bp = APIBlueprint(
     "admin",
@@ -47,8 +46,8 @@ def run_sync_route(path: SyncSourcePath, header: TenantHeader) -> tuple[dict[str
 
 
 @bp.get("/sync/runs", summary="List past sync runs", responses={200: SyncRunsOut})
-def list_sync_runs(header: TenantHeader) -> tuple[dict[str, object], int]:
-    docs = SyncRunRepo(header.x_org_id).list_for_org()
+def list_sync_runs_route(header: TenantHeader) -> tuple[dict[str, object], int]:
+    docs = list_sync_runs(header.x_org_id)
     results = [
         SyncRunOut(
             source=d["source"],
@@ -65,8 +64,8 @@ def list_sync_runs(header: TenantHeader) -> tuple[dict[str, object], int]:
 
 
 @bp.get("/quarantine", summary="List quarantined records", responses={200: QuarantineListOut})
-def list_quarantine(header: TenantHeader) -> tuple[dict[str, object], int]:
-    docs = QuarantineRepo(header.x_org_id).list_for_org()
+def list_quarantine_route(header: TenantHeader) -> tuple[dict[str, object], int]:
+    docs = list_quarantine(header.x_org_id)
     results = [
         QuarantineOut(
             source=d["source"], raw=d["raw"], errors=d["errors"], created_at=d["created_at"]

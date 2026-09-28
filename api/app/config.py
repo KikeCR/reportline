@@ -32,14 +32,6 @@ class Settings(BaseSettings):
         default=100, alias="MONGODB_SLOW_QUERY_THRESHOLD_MS"
     )
 
-    jwt_secret_key: str = Field(default="", alias="JWT_SECRET_KEY")
-    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
-    jwt_access_token_ttl_seconds: int = Field(default=3600, alias="JWT_ACCESS_TOKEN_TTL_SECONDS")
-
-    llm_base_url: str = Field(default="", alias="LLM_BASE_URL")
-    llm_api_key: str = Field(default="", alias="LLM_API_KEY")
-    llm_model: str = Field(default="", alias="LLM_MODEL")
-
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
     @property

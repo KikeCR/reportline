@@ -68,6 +68,53 @@ def test_as_of_for_position_finds_assignment_active_on_that_date(db):
     assert as_of_after == []
 
 
+def test_current_for_positions_batches_several_positions_in_one_query(db):
+    """A1b: the graph's "people" view uses this instead of A1 per node - see
+    ADR 0002 on why the whole-graph read must stay at a constant number of
+    queries regardless of headcount."""
+    org_id = ObjectId()
+    position_a, position_b, position_c = ObjectId(), ObjectId(), ObjectId()
+    current_a = build_assignment(org_id, ObjectId(), position_a, end_date=None)
+    current_b = build_assignment(org_id, ObjectId(), position_b, end_date=None)
+    ended_c = build_assignment(org_id, ObjectId(), position_c, end_date=datetime.now(UTC))
+    db["assignments"].insert_many([current_a, current_b, ended_c])
+    repo = AssignmentRepo(org_id)
+
+    result = repo.current_for_positions([position_a, position_b, position_c])
+
+    assert {r["_id"] for r in result} == {current_a["_id"], current_b["_id"]}
+
+
+def test_current_for_positions_is_tenant_isolated(db):
+    org_a, org_b = ObjectId(), ObjectId()
+    position_id = ObjectId()
+    db["assignments"].insert_one(build_assignment(org_b, ObjectId(), position_id))
+
+    assert AssignmentRepo(org_a).current_for_positions([position_id]) == []
+
+
+def test_as_of_for_positions_batches_several_positions_in_one_query(db):
+    """A2b: batched form of A2, for the same reason as A1b."""
+    org_id = ObjectId()
+    position_a, position_b = ObjectId(), ObjectId()
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    end = datetime(2024, 6, 1, tzinfo=UTC)
+    still_active = build_assignment(org_id, ObjectId(), position_a, start_date=start, end_date=None)
+    ended_before = build_assignment(org_id, ObjectId(), position_b, start_date=start, end_date=end)
+    db["assignments"].insert_many([still_active, ended_before])
+    repo = AssignmentRepo(org_id)
+
+    as_of_during = repo.as_of_for_positions(
+        [position_a, position_b], datetime(2024, 3, 1, tzinfo=UTC)
+    )
+    as_of_after = repo.as_of_for_positions(
+        [position_a, position_b], datetime(2025, 1, 1, tzinfo=UTC)
+    )
+
+    assert {r["_id"] for r in as_of_during} == {still_active["_id"], ended_before["_id"]}
+    assert [r["_id"] for r in as_of_after] == [still_active["_id"]]
+
+
 def test_current_for_employee_supports_dual_role_holding_two_positions(db):
     org_id = ObjectId()
     employee_id = ObjectId()
