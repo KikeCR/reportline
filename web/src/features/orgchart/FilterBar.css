@@ -58,9 +58,13 @@
 	padding: var(--space-2) var(--space-3);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-sm);
-	background: var(--surface-1);
+	background-color: var(--surface-1);
 	color: var(--text-primary);
 	transition: border-color 150ms ease;
+}
+
+.filter-bar__field select {
+	padding-right: var(--space-6);
 }
 
 .filter-bar__field select:hover,

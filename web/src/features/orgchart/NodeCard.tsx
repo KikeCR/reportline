@@ -37,7 +37,6 @@ export const NodeCard = forwardRef<HTMLButtonElement, NodeCardProps>(
 					top: node.y,
 					width: node.width,
 					height: node.height,
-					opacity: node.dimmed ? 0.4 : 1,
 				}}
 				data-testid="node-card"
 			>

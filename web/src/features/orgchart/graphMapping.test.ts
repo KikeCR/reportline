@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { EdgeOut, GraphOut, NodeOut } from '../../api/schemas'
 import {
 	buildElkGraph,
-	computeDimmedIds,
+	computeDepartmentFilterHiddenIds,
 	computeHiddenIds,
 	computePrimaryChildren,
 	computePrimaryParents,
@@ -96,17 +96,22 @@ describe('computeHiddenIds', () => {
 	})
 })
 
-describe('computeDimmedIds', () => {
-	it('dims every node outside the selected department', () => {
-		const dimmed = computeDimmedIds(CEO_VP_DIR_GRAPH.nodes, 'Sales')
+describe('computeDepartmentFilterHiddenIds', () => {
+	it('hides every node outside the selected department', () => {
+		const hidden = computeDepartmentFilterHiddenIds(
+			CEO_VP_DIR_GRAPH.nodes,
+			'Sales',
+		)
 
-		expect(dimmed.has('vp2')).toBe(false)
-		expect(dimmed.has('ceo')).toBe(true)
-		expect(dimmed.has('vp')).toBe(true)
+		expect(hidden.has('vp2')).toBe(false)
+		expect(hidden.has('ceo')).toBe(true)
+		expect(hidden.has('vp')).toBe(true)
 	})
 
-	it('dims nothing when no department is selected', () => {
-		expect(computeDimmedIds(CEO_VP_DIR_GRAPH.nodes, null)).toEqual(new Set())
+	it('hides nothing when no department is selected', () => {
+		expect(
+			computeDepartmentFilterHiddenIds(CEO_VP_DIR_GRAPH.nodes, null),
+		).toEqual(new Set())
 	})
 })
 

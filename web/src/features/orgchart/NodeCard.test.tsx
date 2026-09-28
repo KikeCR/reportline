@@ -18,7 +18,6 @@ function buildNode(overrides: Partial<PositionedNode> = {}): PositionedNode {
 		height: 92,
 		hasChildren: false,
 		collapsed: false,
-		dimmed: false,
 		...overrides,
 	}
 }

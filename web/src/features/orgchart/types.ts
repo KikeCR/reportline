@@ -10,7 +10,6 @@ export interface PositionedNode extends NodeOut {
 	height: number
 	hasChildren: boolean
 	collapsed: boolean
-	dimmed: boolean
 }
 
 export interface Point {

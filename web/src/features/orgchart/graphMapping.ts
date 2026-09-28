@@ -60,9 +60,9 @@ export function computeHiddenIds(
 	return hidden
 }
 
-/** Node ids that don't match the department filter - dimmed, not removed,
- * so the graph's shape stays legible for context. */
-export function computeDimmedIds(
+/** Node ids that don't match the selected department filter - hidden
+ * entirely from the layout so the matching subset is easy to read. */
+export function computeDepartmentFilterHiddenIds(
 	nodes: NodeOut[],
 	department: string | null,
 ): Set<string> {

@@ -4,7 +4,7 @@ import { useGraph } from '../../api/queries'
 import { useOrg } from '../../context/useOrg'
 import { DetailDrawer } from './DetailDrawer'
 import { FilterBar } from './FilterBar'
-import { computeDimmedIds } from './graphMapping'
+import { computeDepartmentFilterHiddenIds } from './graphMapping'
 import { OrgChart } from './OrgChart'
 import './OrgChartPage.css'
 import { useGraphLayout } from './useGraphLayout'
@@ -29,12 +29,20 @@ export function OrgChartPage() {
 		asOf: isToday ? undefined : asOf,
 	})
 
-	const dimmedIds = useMemo(
-		() => computeDimmedIds(graphQuery.data?.nodes ?? [], department),
+	const departmentHiddenIds = useMemo(
+		() =>
+			computeDepartmentFilterHiddenIds(
+				graphQuery.data?.nodes ?? [],
+				department,
+			),
 		[graphQuery.data, department],
 	)
 
-	const layout = useGraphLayout(graphQuery.data, collapsedIds, dimmedIds)
+	const layout = useGraphLayout(
+		graphQuery.data,
+		collapsedIds,
+		departmentHiddenIds,
+	)
 
 	const departments = useMemo(() => {
 		const set = new Set((graphQuery.data?.nodes ?? []).map((n) => n.department))

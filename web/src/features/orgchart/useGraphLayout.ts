@@ -30,7 +30,7 @@ const elk = new ELK()
 export function useGraphLayout(
 	graph: GraphOut | undefined,
 	collapsedIds: ReadonlySet<string>,
-	dimmedIds: ReadonlySet<string>,
+	filterHiddenIds: ReadonlySet<string>,
 ): LaidOutGraph | null {
 	const [layout, setLayout] = useState<LaidOutGraph | null>(null)
 
@@ -40,7 +40,10 @@ export function useGraphLayout(
 		}
 
 		let cancelled = false
-		const hiddenIds = computeHiddenIds(graph.edges, collapsedIds)
+		const hiddenIds = new Set([
+			...computeHiddenIds(graph.edges, collapsedIds),
+			...filterHiddenIds,
+		])
 		const visibleNodes = visibleNodesOf(graph, hiddenIds)
 		const childrenByManagerId = computePrimaryChildren(graph.edges)
 		const elkGraph = buildElkGraph(visibleNodes, graph.edges)
@@ -65,7 +68,6 @@ export function useGraphLayout(
 					height: NODE_HEIGHT,
 					hasChildren: (childrenByManagerId.get(node.id)?.length ?? 0) > 0,
 					collapsed: collapsedIds.has(node.id),
-					dimmed: dimmedIds.has(node.id),
 				}
 			})
 			const nodeById = new Map(nodes.map((n) => [n.id, n]))
@@ -98,7 +100,7 @@ export function useGraphLayout(
 		return () => {
 			cancelled = true
 		}
-	}, [graph, collapsedIds, dimmedIds])
+	}, [graph, collapsedIds, filterHiddenIds])
 
 	return graph ? layout : null
 }
