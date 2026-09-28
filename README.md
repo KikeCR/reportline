@@ -1,20 +1,43 @@
 # Reportline
 
-A multi-tenant org chart service, run locally (no deploy target). See
-`CLAUDE.md` for architecture rules and `docs/adr/` for design decisions.
+A multi-tenant org chart service: model an organization as a DAG of
+reporting lines (solid + dotted, including dual-manager and vacant
+positions), sync it from mock HRIS sources, and browse it in a React
+viewer. Built as a portfolio project, run locally only (no deploy target).
 
-## Status
+See `CLAUDE.md` for the architecture rules this codebase follows, and
+`docs/adr/` for the reasoning behind the non-obvious decisions - what
+SaveState conventions were mirrored vs. deliberately deviated from, why the
+graph is shaped the way it is, how the API contract pipeline works, and how
+the frontend's design system was chosen.
 
-- Phase 0-2: SaveState conventions, backend core/org graph, API + contract pipeline - done
-- Phase 3: React org chart viewer - done
-- Phase 4: **simplified by request** - no auth/roles/JWT. The app runs
-  fully open (every request has admin-level visibility, including
-  compensation) - see "Descoped" below.
-- Phase 5: HRIS sync adapters + quarantine - done
-- Phase 6: Docker/K8s manifests/CI - done, kept intentionally minimal (no
-  real cluster or deploy target - see "Running it locally" and "Descoped")
-- Phase 7 (LLM "ask" feature): **skipped by request**
-- Phase 8: this README is the polish pass, kept intentionally light
+## Architecture at a glance
+
+```
+web/ (React + Vite, TanStack Query, elkjs)
+  │  fetch, Zod-validated, X-Org-Id header
+  ▼
+api/ (Flask, flask-openapi3)
+  routes/  → thin: parse, call one service, return an out-model
+  services/ → org graph, sync, permissions-free (see "What's simplified")
+  repos/   → the only layer that touches pymongo; every query is org_id-scoped
+  │
+  ▼
+MongoDB (replica set - transactions + $graphLookup need one)
+  positions / employees / assignments / organizations / quarantine / sync_runs
+```
+
+- **The graph** lives in `positions.reports_to` (solid + dotted edges).
+  `solid_manager_ids` and `ancestor_ids` are precomputed on every edit so
+  reads (subtree lookups, permission-style scoping) are single indexed
+  queries instead of a live graph walk - see ADR 0001.
+- **The contract**: `api/openapi.json` is generated from the Flask routes,
+  never hand-edited; `web/src/api/schema.d.ts` is generated from that; a
+  test fails if either drifts. See ADR 0002.
+- **Sync**: two fixture-backed adapters (`workday_like`, `bamboo_like`)
+  normalize into positions/employees/reporting-lines in two passes, so a
+  reporting line can reference a person the first pass hasn't reached yet.
+  Bad or unresolvable records are quarantined, never fail the whole run.
 
 ## Running it locally
 
@@ -51,6 +74,8 @@ seeded organization and auto-selects the first one, so the chart loads with
 no setup. Switch tenants from that dropdown; the "Admin" tab (top left) has
 the HRIS sync + quarantine tables.
 
+Run the checks:
+
 ```bash
 make test   # backend: spins up its own MongoDB container per run
 make lint   # backend: ruff + mypy strict
@@ -65,8 +90,9 @@ docker compose run --rm seed       # migrate + seed, one-off
 ```
 
 `web` is served by nginx on :5173, proxying `/api/v1` to `api:8000` inside
-the compose network - open http://localhost:5173. Mongo here is unauthenticated
-(single-node replica set), for local simplicity only - see "Descoped".
+the compose network - open http://localhost:5173. Mongo here is
+unauthenticated (single-node replica set), for local simplicity only - see
+"What's simplified" below.
 
 ### Kubernetes (demonstration only - no real cluster)
 
@@ -77,19 +103,21 @@ kubectl kustomize k8s/base   # renders the manifests; nothing to apply them to
 ## API
 
 All endpoints are under `/api/v1` except `/healthz`/`/readyz`. Every
-tenant-scoped route reads an `X-Org-Id` header (no auth - see "Descoped").
+tenant-scoped route reads an `X-Org-Id` header (no auth - see "What's
+simplified").
 
 | Method | Path | |
 |---|---|---|
-| GET | `/healthz` / `/readyz` | liveness / Mongo readiness |
-| GET | `/api/v1/org/positions/{id}` | a position |
-| GET | `/api/v1/org/positions/{id}/descendants` | solid-line subtree |
-| GET | `/api/v1/org/graph?view=positions\|people&as_of=YYYY-MM-DD` | the full tenant graph |
-| POST` / `DELETE` | `/api/v1/org/reporting-lines` | add / remove a reporting line |
-| GET | `/api/v1/employees/{id}` | an employee, full view (no field-level gating - see "Descoped") |
-| POST | `/api/v1/admin/sync/{source}` | run a sync (`workday_like` or `bamboo_like` fixture data) |
-| GET | `/api/v1/admin/sync/runs` | past sync run counts/duration |
-| GET | `/api/v1/admin/quarantine` | records a sync couldn't resolve, and why |
+| GET | `/healthz`, `/readyz` | liveness / Mongo readiness |
+| GET | `/organizations/` | the tenant directory (no header - this is how a client finds its org id) |
+| GET | `/org/graph?view=positions\|people&as_of=YYYY-MM-DD` | the full tenant graph |
+| GET | `/org/positions/{id}` | a position |
+| GET | `/org/positions/{id}/descendants` | solid-line subtree |
+| POST, DELETE | `/org/reporting-lines` | add / remove a reporting line |
+| GET | `/employees/{id}` | an employee, full view (no field-level gating - see below) |
+| POST | `/admin/sync/{source}` | run a sync (`workday_like` or `bamboo_like` fixture data) |
+| GET | `/admin/sync/runs` | past sync run counts/duration |
+| GET | `/admin/quarantine` | records a sync couldn't resolve, and why |
 
 Every error response is `{"error": "<code>", "message": "...", "details": {...}}`.
 
@@ -98,21 +126,54 @@ adapters read from fixture files (`api/app/integrations/fixtures/`), not a
 live HRIS - each includes deliberately messy records (a missing email, an
 unresolved manager reference, a manager cycle) to exercise quarantine.
 
-## Descoped by request, not forgotten
+## What's simplified, and why
 
-- **Auth/roles/permission scoping (original Phase 4)**: not built. No JWT,
-  no login, no `org_admin`/`hr_partner`/`manager`/`employee` roles, no
-  manager-subtree filtering. `X-Org-Id` (a plain header, entered by hand in
-  the UI) is the only scoping - every request sees everything in that
-  tenant, including employee compensation. Add real auth later by
-  replacing how `X-Org-Id`/`useOrg` are populated; every call site already
-  goes through that one seam.
-- **Kubernetes/CI (Phase 6)**: built, but minimal by request - `k8s/base`
-  has just Deployment/Service/ConfigMap/Secret for api and web (no Ingress,
-  HPA, or overlays), verified with `kubectl kustomize` only (no cluster to
-  apply to). CI is two path-filtered GitHub Actions workflows
-  (`backend-ci.yml`, `frontend-ci.yml`) with no preview-deploy workflow.
-- **LLM "ask" feature (original Phase 7)**: not built.
-- **Playwright smoke test / full frontend component coverage**: the brief's
-  explicit ask (NodeCard + graph data mapping tests) is covered; broader UI
-  integration tests weren't added.
+This was built in phases with a human reviewing and redirecting scope along
+the way - these are the deliberate cuts, not gaps that went unnoticed:
+
+- **No auth.** No JWT, no login, no roles, no manager-subtree permission
+  filtering. `X-Org-Id` (picked from a dropdown, no credentials) is the only
+  tenant scoping, and every request sees everything in that tenant,
+  including compensation. The seam for adding real auth later is narrow by
+  design: replace how `useOrg`/`X-Org-Id` are populated on both sides, and
+  every call site downstream is unaffected.
+- **No LLM feature.** The brief's natural-language "ask" endpoint wasn't built.
+- **Docker/Kubernetes/CI exist but are minimal.** `k8s/base` has just
+  Deployment/Service/ConfigMap/Secret for api and web - no Ingress, HPA, or
+  environment overlays - verified with `kubectl kustomize` only, since there's
+  no real cluster to apply it to. CI is two path-filtered GitHub Actions
+  workflows (`backend-ci.yml`, `frontend-ci.yml`); there's no preview-deploy
+  workflow.
+- **Test coverage matches what was explicitly asked for**, not maximal
+  coverage: the org-graph invariants (cycles, concurrency, tenant isolation)
+  and the sync pipeline are tested against a real MongoDB replica set, and
+  the frontend's explicitly-required surfaces (the node card, the graph
+  data mapping) have unit tests - but there's no Playwright end-to-end
+  suite, and components like the filter bar or admin tables don't have
+  dedicated tests.
+
+## How this was built
+
+Built with Claude Code, working from a long, detailed brief that specified
+the phases, the MongoDB/testing/API-contract standards, and a sibling
+codebase (SaveState) to mirror conventions from. A few things worth naming:
+
+- **`CLAUDE.md`** (architecture rules, layering, the "Don't" list) was
+  written before any application code, and enforced throughout - e.g. the
+  "every repo query must include org_id" rule is structural (`ScopedRepo`),
+  not a convention someone has to remember.
+- **ADRs over ad hoc comments** for anything non-obvious: why `ancestor_ids`
+  is precomputed, why `flask-openapi3`'s validation callback has to return
+  a bare `Response` and not a tuple (found by a route test actually
+  exercising it, not by reading the docs), why the org-chart's department
+  colors are a text-first accent rather than a fill.
+- **Correcting course mid-build**: the initial plan (Phases 4-8 in full)
+  produced more ceremony than the project needed for a portfolio piece -
+  full ADRs per phase, exhaustive test suites, an eventual auth/roles
+  system. Descoping happened live, in conversation, and is recorded above
+  rather than silently dropped.
+- **A real bug the tooling caught**: this README's first CI run failed
+  because the frontend's Node version was pinned to 20 in
+  `frontend-ci.yml`, while local development had moved to Node 24 - `jsdom`
+  needed a newer built-in `webidl` API that Node 20 doesn't have. Fixed by
+  matching CI to the locally-proven version instead of guessing.

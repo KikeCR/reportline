@@ -14,10 +14,15 @@ function OrgPicker() {
 	const { orgId, setOrgId } = useOrg()
 	const organizations = useOrganizations()
 
-	// Auto-select the first tenant so the chart loads with zero clicks.
+	// Auto-select the first tenant so the chart loads with zero clicks, and
+	// recover if a stale org id is cached (e.g. from before a reseed).
 	useEffect(() => {
-		if (!orgId && organizations.data && organizations.data.results.length > 0) {
-			setOrgId(organizations.data.results[0]!.id)
+		if (!organizations.data) return
+		const { results } = organizations.data
+		if (results.length === 0) return
+		const stillExists = results.some((org) => org.id === orgId)
+		if (!orgId || !stillExists) {
+			setOrgId(results[0]!.id)
 		}
 	}, [orgId, organizations.data, setOrgId])
 

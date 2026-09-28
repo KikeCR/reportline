@@ -8,7 +8,7 @@
 	position: relative;
 	flex: 1;
 	overflow: auto;
-	padding: 32px;
+	padding: var(--space-6);
 }
 
 .org-chart-page__scroll {
@@ -17,16 +17,17 @@
 
 .org-chart-page__status {
 	color: var(--text-secondary);
-	font-size: 0.9rem;
+	font-size: var(--text-sm);
 }
 
 .org-chart-page__empty {
-	padding: 32px;
+	padding: var(--space-6);
 	color: var(--text-secondary);
+	font-size: var(--text-sm);
 }
 
 @media (max-width: 640px) {
 	.org-chart-page__canvas {
-		padding: 12px;
+		padding: var(--space-3);
 	}
 }

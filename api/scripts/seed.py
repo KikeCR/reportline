@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import random
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -43,6 +44,87 @@ _IC_TITLES = {
     "Finance": ["Financial Analyst", "Senior Financial Analyst", "Accountant"],
     "People": ["People Partner", "Recruiter", "People Operations Specialist"],
 }
+
+# A real (if fictional) name pool, not "VP Employee 482910" - readable demo
+# data is the point. 30x30 combinations is comfortably more than either
+# tenant needs, so every seeded person gets a distinct name.
+_FIRST_NAMES = [
+    "Priya",
+    "Tomas",
+    "Carol",
+    "Dave",
+    "Elena",
+    "Marcus",
+    "Sofia",
+    "James",
+    "Amara",
+    "Liam",
+    "Nadia",
+    "Ethan",
+    "Yuki",
+    "Omar",
+    "Grace",
+    "Noah",
+    "Mei",
+    "Lucas",
+    "Fatima",
+    "Daniel",
+    "Ingrid",
+    "Rafael",
+    "Chloe",
+    "Kwame",
+    "Anika",
+    "Felix",
+    "Zara",
+    "Hiro",
+    "Isla",
+    "Mateo",
+]
+_LAST_NAMES = [
+    "Shah",
+    "Rivera",
+    "Nakamura",
+    "Okafor",
+    "Petrov",
+    "Alvarez",
+    "Chen",
+    "Kowalski",
+    "Silva",
+    "Novak",
+    "Andersen",
+    "Haddad",
+    "Fischer",
+    "Dubois",
+    "Kimura",
+    "Osei",
+    "Lindqvist",
+    "Moreau",
+    "Santos",
+    "Bakker",
+    "Costa",
+    "Weber",
+    "Ibrahim",
+    "Larsen",
+    "Tanaka",
+    "Reyes",
+    "Berg",
+    "Adeyemi",
+    "Fontaine",
+    "Volkov",
+]
+
+
+def _slugify(name: str) -> str:
+    return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", name.lower())).strip("-")
+
+
+def _build_name_pool(rng: random.Random, count: int) -> list[str]:
+    pairs = [(first, last) for first in _FIRST_NAMES for last in _LAST_NAMES]
+    rng.shuffle(pairs)
+    if count > len(pairs):
+        raise ValueError(f"name pool too small: need {count}, have {len(pairs)}")
+    return [f"{first} {last}" for first, last in pairs[:count]]
+
 
 _BASE_COMPENSATION = {
     "ceo": Decimal("420000"),
@@ -92,17 +174,17 @@ def _build_hierarchy(org_id: ObjectId, rng: random.Random, *, ic_range: tuple[in
         tenant.positions.append(vp)
         org_graph.add_reporting_line(org_id, ceo.id, vp.id, "solid", True)
 
-        for director_num in range(1, 4):
+        for _ in range(3):
             director = _create_position(
-                position_repo, f"Director of {department} ({director_num})", department, "director"
+                position_repo, f"Director of {department}", department, "director"
             )
             tenant.positions.append(director)
             org_graph.add_reporting_line(org_id, vp.id, director.id, "solid", True)
 
-            for manager_num in range(1, 3):
+            for _ in range(2):
                 manager = _create_position(
                     position_repo,
-                    f"{department} Manager ({director_num}.{manager_num})",
+                    f"{department} Manager",
                     department,
                     "manager",
                 )
@@ -151,11 +233,17 @@ def _add_dual_solid_co_managers(org_id: ObjectId, tenant: _Tenant, rng: random.R
             continue
 
 
+def _email_for(name: str, domain: str) -> str:
+    first, last = name.lower().split(" ", 1)
+    return f"{first}.{last.replace(' ', '-')}@{domain}"
+
+
 def _populate_people(
     org_id: ObjectId,
     tenant: _Tenant,
     rng: random.Random,
     *,
+    email_domain: str,
     vacant_count: int,
     dual_role_employee_positions: tuple[ObjectId, ObjectId] | None,
 ) -> None:
@@ -169,6 +257,8 @@ def _populate_people(
     if dual_role_employee_positions:
         vacant_ids -= set(dual_role_employee_positions)
 
+    names = iter(_build_name_pool(rng, len(tenant.positions) + 1))
+
     for position in tenant.positions:
         if position.id in vacant_ids:
             position_repo.update_one({"_id": position.id}, {"$set": {"status": "vacant"}})
@@ -177,9 +267,8 @@ def _populate_people(
         if dual_role_employee_positions and position.id in dual_role_employee_positions:
             continue  # both handled once, below, by the single dual-role employee
 
-        employee_num = rng.randint(0, 999_999)
-        name = f"{position.title.split()[0]} Employee {employee_num}"
-        email = f"employee.{position.id}@example.com"
+        name = next(names)
+        email = _email_for(name, email_domain)
         employee_id = employee_repo.create(
             name, email, compensation_amount=_compensation_for(position.level, rng)
         )
@@ -187,9 +276,10 @@ def _populate_people(
 
     if dual_role_employee_positions:
         position_a_id, position_b_id = dual_role_employee_positions
+        dual_role_name = next(names)
         employee_id = employee_repo.create(
-            "Dual Role Employee",
-            "dual.role@example.com",
+            dual_role_name,
+            _email_for(dual_role_name, email_domain),
             compensation_amount=_compensation_for("ic", rng),
         )
         assignment_repo.create(
@@ -236,6 +326,7 @@ def _seed_tenant(
         org_id,
         tenant,
         rng,
+        email_domain=f"{_slugify(name)}.example",
         vacant_count=vacant_count,
         dual_role_employee_positions=dual_role_positions,
     )

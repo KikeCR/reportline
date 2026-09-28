@@ -9,7 +9,7 @@ export function AdminPage() {
 	const runSync = useRunSync(orgId)
 
 	if (!orgId) {
-		return <p className="admin-page__empty">Enter a tenant id above first.</p>
+		return <p className="admin-page__empty">Select a tenant above first.</p>
 	}
 
 	return (
@@ -22,69 +22,101 @@ export function AdminPage() {
 						disabled={runSync.isPending}
 						onClick={() => runSync.mutate('workday_like')}
 					>
-						Sync workday_like
+						{runSync.isPending ? 'Syncing…' : 'Sync workday_like'}
 					</button>
 					<button
 						type="button"
 						disabled={runSync.isPending}
 						onClick={() => runSync.mutate('bamboo_like')}
 					>
-						Sync bamboo_like
+						{runSync.isPending ? 'Syncing…' : 'Sync bamboo_like'}
 					</button>
 				</div>
 
-				<table className="admin-page__table">
-					<thead>
-						<tr>
-							<th>Source</th>
-							<th>Created</th>
-							<th>Updated</th>
-							<th>Unchanged</th>
-							<th>Quarantined</th>
-							<th>Duration (ms)</th>
-							<th>Started</th>
-						</tr>
-					</thead>
-					<tbody>
-						{syncRuns.data?.results.map((run, i) => (
-							<tr key={i}>
-								<td>{run.source}</td>
-								<td>{run.created_count}</td>
-								<td>{run.updated_count}</td>
-								<td>{run.unchanged_count}</td>
-								<td>{run.quarantined_count}</td>
-								<td>{run.duration_ms}</td>
-								<td>{new Date(run.started_at).toLocaleString()}</td>
+				<div className="admin-page__table-wrapper">
+					<table className="admin-page__table">
+						<thead>
+							<tr>
+								<th>Source</th>
+								<th>Created</th>
+								<th>Updated</th>
+								<th>Unchanged</th>
+								<th>Quarantined</th>
+								<th>Duration</th>
+								<th>Started</th>
 							</tr>
-						))}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{syncRuns.data?.results.length === 0 && (
+								<tr>
+									<td colSpan={7} className="admin-page__empty-row">
+										No sync runs yet - click a button above to run one.
+									</td>
+								</tr>
+							)}
+							{syncRuns.data?.results.map((run, i) => (
+								<tr key={i}>
+									<td>
+										<code>{run.source}</code>
+									</td>
+									<td>{run.created_count}</td>
+									<td>{run.updated_count}</td>
+									<td>{run.unchanged_count}</td>
+									<td>
+										<span
+											className={`admin-page__badge ${
+												run.quarantined_count > 0
+													? 'admin-page__badge--nonzero'
+													: 'admin-page__badge--zero'
+											}`}
+										>
+											{run.quarantined_count}
+										</span>
+									</td>
+									<td>{run.duration_ms} ms</td>
+									<td>{new Date(run.started_at).toLocaleString()}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
 			</section>
 
 			<section>
 				<h2>Quarantine</h2>
-				<table className="admin-page__table">
-					<thead>
-						<tr>
-							<th>Source</th>
-							<th>Errors</th>
-							<th>Raw</th>
-							<th>Created</th>
-						</tr>
-					</thead>
-					<tbody>
-						{quarantine.data?.results.map((record, i) => (
-							<tr key={i}>
-								<td>{record.source}</td>
-								<td>{record.errors.join('; ')}</td>
-								<td>
-									<code>{JSON.stringify(record.raw)}</code>
-								</td>
-								<td>{new Date(record.created_at).toLocaleString()}</td>
+				<div className="admin-page__table-wrapper">
+					<table className="admin-page__table">
+						<thead>
+							<tr>
+								<th>Source</th>
+								<th>Reason</th>
+								<th>Raw record</th>
+								<th>Created</th>
 							</tr>
-						))}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{quarantine.data?.results.length === 0 && (
+								<tr>
+									<td colSpan={4} className="admin-page__empty-row">
+										Nothing quarantined.
+									</td>
+								</tr>
+							)}
+							{quarantine.data?.results.map((record, i) => (
+								<tr key={i}>
+									<td>
+										<code>{record.source}</code>
+									</td>
+									<td>{record.errors.join('; ')}</td>
+									<td>
+										<code>{JSON.stringify(record.raw)}</code>
+									</td>
+									<td>{new Date(record.created_at).toLocaleString()}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
 			</section>
 		</div>
 	)
