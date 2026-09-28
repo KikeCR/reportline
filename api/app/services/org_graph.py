@@ -9,8 +9,9 @@ pitfall that makes the denormalization necessary in the first place.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import UTC, datetime
+from dataclasses import dataclass, field
+from datetime import UTC, date, datetime, time
+from typing import Literal
 
 from bson import ObjectId
 from pymongo.client_session import ClientSession
@@ -18,7 +19,13 @@ from pymongo.client_session import ClientSession
 from app.db import Document
 from app.errors import ConcurrentGraphEditError, CycleError, DomainValidationError, NotFoundError
 from app.models.position import MAX_REPORTS_TO, Position
-from app.repos import OrganizationRepo, PositionRepo, run_in_transaction
+from app.repos import (
+    AssignmentRepo,
+    EmployeeRepo,
+    OrganizationRepo,
+    PositionRepo,
+    run_in_transaction,
+)
 
 # Real organizations don't exceed this. It bounds $graphLookup's maxDepth
 # and the ancestor_ids recompute loop below - see docs/data-model.md.
@@ -29,7 +36,15 @@ MAX_GRAPH_DEPTH = 20
 class GraphEdge:
     report_id: ObjectId
     manager_id: ObjectId
-    relation: str
+    relation: Literal["solid", "dotted"]
+    is_primary: bool
+
+
+@dataclass(frozen=True)
+class Occupant:
+    employee_id: ObjectId
+    name: str
+    fte: float
     is_primary: bool
 
 
@@ -38,26 +53,57 @@ class Graph:
     nodes: list[Position]
     edges: list[GraphEdge]
     root_ids: list[ObjectId]
+    occupants: dict[ObjectId, list[Occupant]] = field(default_factory=dict)
 
 
-def get_descendants(org_id: ObjectId, position_id: ObjectId) -> list[Position]:
-    """Solid-line subtree below ``position_id``. See ADR 0001 for why this
-    is solid-only while :func:`get_ancestors` is all-edge-type.
+@dataclass(frozen=True)
+class Descendant:
+    position: Position
+    depth: int
+
+
+def get_position(org_id: ObjectId, position_id: ObjectId) -> Position:
+    repo = PositionRepo(org_id)
+    doc = repo.get_by_id(position_id)
+    if doc is None:
+        raise NotFoundError(f"position {position_id} not found")
+    return Position.model_validate(doc)
+
+
+def get_descendants(org_id: ObjectId, position_id: ObjectId) -> list[Descendant]:
+    """Solid-line subtree below ``position_id``, with each result's hop
+    count from ``position_id``. See ADR 0001 for why this is solid-only
+    while :func:`get_ancestors` is all-edge-type.
+
+    Raises :class:`NotFoundError` if ``position_id`` itself doesn't exist -
+    distinct from it existing with an empty subtree (e.g. a leaf position).
     """
     repo = PositionRepo(org_id)
+    if repo.get_by_id(position_id) is None:
+        raise NotFoundError(f"position {position_id} not found")
     docs = repo.get_descendants(position_id, max_depth=MAX_GRAPH_DEPTH)
-    return [Position.model_validate(doc) for doc in docs]
+    return [Descendant(position=Position.model_validate(doc), depth=doc["depth"]) for doc in docs]
 
 
 def get_ancestors(org_id: ObjectId, position_id: ObjectId) -> list[Position]:
+    """Raises :class:`NotFoundError` if ``position_id`` itself doesn't exist -
+    distinct from it existing with no ancestors (e.g. a root position).
+    """
     repo = PositionRepo(org_id)
+    if repo.get_by_id(position_id) is None:
+        raise NotFoundError(f"position {position_id} not found")
     docs = repo.get_ancestors(position_id)
     return [Position.model_validate(doc) for doc in docs]
 
 
-def get_graph(org_id: ObjectId) -> Graph:
+def get_graph(org_id: ObjectId, *, view: str = "positions", as_of: date | None = None) -> Graph:
     """The full tenant graph as nodes + edges + root_ids - never a nested
-    tree, per the brief.
+    tree, per the brief. ``view="people"`` additionally attaches each
+    position's occupant(s), current or as of ``as_of``.
+
+    Permission scoping (``viewer_scope`` in the brief's signature) is
+    layered on by the route/service that calls this once Phase 4's
+    permission model exists - see README's "Known deferrals".
     """
     repo = PositionRepo(org_id)
     docs = repo.list_for_graph()
@@ -73,7 +119,43 @@ def get_graph(org_id: ObjectId) -> Graph:
         for edge in node.reports_to
     ]
     root_ids = repo.root_ids()
-    return Graph(nodes=nodes, edges=edges, root_ids=root_ids)
+
+    occupants: dict[ObjectId, list[Occupant]] = {}
+    if view == "people":
+        assignment_repo = AssignmentRepo(org_id)
+        assignments_by_position: dict[ObjectId, list[Document]] = {}
+        for node in nodes:
+            if as_of is not None:
+                as_of_dt = datetime.combine(as_of, time.min, tzinfo=UTC)
+                assignments_by_position[node.id] = assignment_repo.as_of_for_position(
+                    node.id, as_of_dt
+                )
+            else:
+                assignments_by_position[node.id] = assignment_repo.current_for_position(node.id)
+
+        employee_ids = {
+            assignment["employee_id"]
+            for assignments in assignments_by_position.values()
+            for assignment in assignments
+        }
+        employee_names = {
+            doc["_id"]: doc["name"] for doc in EmployeeRepo(org_id).get_many_by_ids(employee_ids)
+        }
+
+        occupants = {
+            position_id: [
+                Occupant(
+                    employee_id=assignment["employee_id"],
+                    name=employee_names.get(assignment["employee_id"], ""),
+                    fte=assignment["fte"],
+                    is_primary=assignment["is_primary"],
+                )
+                for assignment in assignments
+            ]
+            for position_id, assignments in assignments_by_position.items()
+        }
+
+    return Graph(nodes=nodes, edges=edges, root_ids=root_ids, occupants=occupants)
 
 
 def add_reporting_line(

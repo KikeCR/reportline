@@ -36,7 +36,10 @@ def new_request_id() -> str:
 
 
 def bind_request_id(request_id: str | None = None) -> str:
-    """Bind a request id to the current context, generating one if absent."""
+    """Clear any leftover context (a worker thread can handle many requests)
+    and bind a fresh request id, generating one if absent.
+    """
+    structlog.contextvars.clear_contextvars()
     request_id = request_id or new_request_id()
     structlog.contextvars.bind_contextvars(request_id=request_id)
     return request_id

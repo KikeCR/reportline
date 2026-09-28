@@ -5,6 +5,7 @@ description = "Reportline API - multi-tenant org chart service"
 requires-python = ">=3.12"
 dependencies = [
   "flask>=3.1",
+  "flask-openapi3>=4.3",
   "pymongo>=4.9",
   "pydantic>=2.9",
   "pydantic-settings>=2.5",

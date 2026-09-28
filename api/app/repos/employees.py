@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -49,6 +50,14 @@ class EmployeeRepo(ScopedRepo):
         self, employee_id: ObjectId, *, session: ClientSession | None = None
     ) -> Document | None:
         return self.find_one({"_id": employee_id}, session=session)
+
+    def get_many_by_ids(
+        self, employee_ids: Iterable[ObjectId], *, session: ClientSession | None = None
+    ) -> list[Document]:
+        ids = list(employee_ids)
+        if not ids:
+            return []
+        return list(self.find({"_id": {"$in": ids}}, session=session))
 
     def find_by_source_ref(
         self, system: str, ref_id: str, *, session: ClientSession | None = None

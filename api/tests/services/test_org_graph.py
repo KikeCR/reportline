@@ -1,9 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from bson import ObjectId
 
 from app.errors import ConcurrentGraphEditError, CycleError, DomainValidationError, NotFoundError
+from app.repos import AssignmentRepo
 from app.services import org_graph
 from tests.factories import build_organization, build_position
 
@@ -20,6 +22,50 @@ def _seed_position(db, org_id: ObjectId, **overrides) -> ObjectId:
     position = build_position(org_id, **overrides)
     db["positions"].insert_one(position)
     return position["_id"]
+
+
+def test_get_position_returns_the_position(db):
+    org_id = _seed_org(db)
+    position_id = _seed_position(db, org_id, title="CEO")
+
+    position = org_graph.get_position(org_id, position_id)
+
+    assert position.title == "CEO"
+
+
+def test_get_position_raises_not_found_for_unknown_id(db):
+    org_id = _seed_org(db)
+
+    with pytest.raises(NotFoundError):
+        org_graph.get_position(org_id, ObjectId())
+
+
+def test_get_descendants_raises_not_found_for_unknown_position(db):
+    org_id = _seed_org(db)
+
+    with pytest.raises(NotFoundError):
+        org_graph.get_descendants(org_id, ObjectId())
+
+
+def test_get_descendants_returns_empty_list_for_a_leaf_position(db):
+    org_id = _seed_org(db)
+    position_id = _seed_position(db, org_id, title="IC")
+
+    assert org_graph.get_descendants(org_id, position_id) == []
+
+
+def test_get_ancestors_raises_not_found_for_unknown_position(db):
+    org_id = _seed_org(db)
+
+    with pytest.raises(NotFoundError):
+        org_graph.get_ancestors(org_id, ObjectId())
+
+
+def test_get_ancestors_returns_empty_list_for_a_root_position(db):
+    org_id = _seed_org(db)
+    position_id = _seed_position(db, org_id, title="CEO")
+
+    assert org_graph.get_ancestors(org_id, position_id) == []
 
 
 def test_add_reporting_line_rejects_self_reference(db):
@@ -86,8 +132,21 @@ def test_add_reporting_line_allows_dual_solid_co_managers_with_one_primary(db):
     assert primaries[0].position_id == vp1
 
     # Both co-managers must see it as a solid-line descendant.
-    assert {p.id for p in org_graph.get_descendants(org_id, vp1)} == {shared}
-    assert {p.id for p in org_graph.get_descendants(org_id, vp2)} == {shared}
+    assert {d.position.id for d in org_graph.get_descendants(org_id, vp1)} == {shared}
+    assert {d.position.id for d in org_graph.get_descendants(org_id, vp2)} == {shared}
+
+
+def test_get_descendants_reports_hop_count_from_the_queried_position(db):
+    org_id = _seed_org(db)
+    ceo = _seed_position(db, org_id, title="CEO")
+    vp = _seed_position(db, org_id, title="VP")
+    director = _seed_position(db, org_id, title="Director")
+    org_graph.add_reporting_line(org_id, ceo, vp, "solid", True)
+    org_graph.add_reporting_line(org_id, vp, director, "solid", True)
+
+    depths = {d.position.id: d.depth for d in org_graph.get_descendants(org_id, ceo)}
+
+    assert depths == {vp: 0, director: 1}
 
 
 def test_add_reporting_line_rejects_unknown_relation(db):
@@ -203,6 +262,40 @@ def test_get_graph_returns_nodes_edges_and_root_ids(db):
     assert len(graph.edges) == 1
     assert graph.edges[0].report_id == vp
     assert graph.edges[0].manager_id == ceo
+    assert graph.occupants == {}
+
+
+def test_get_graph_positions_view_has_no_occupants(db):
+    org_id = _seed_org(db)
+    _seed_position(db, org_id, title="CEO")
+
+    graph = org_graph.get_graph(org_id, view="positions")
+
+    assert graph.occupants == {}
+
+
+def test_get_graph_people_view_attaches_current_occupants(db):
+    org_id = _seed_org(db)
+    ceo = _seed_position(db, org_id, title="CEO")
+    employee_id = ObjectId()
+    AssignmentRepo(org_id).create(employee_id, ceo, start_date=datetime.now(UTC))
+
+    graph = org_graph.get_graph(org_id, view="people")
+
+    assert [a.employee_id for a in graph.occupants[ceo]] == [employee_id]
+
+
+def test_get_graph_people_view_as_of_excludes_assignments_outside_the_window(db):
+    org_id = _seed_org(db)
+    ceo = _seed_position(db, org_id, title="CEO")
+    now = datetime.now(UTC)
+    AssignmentRepo(org_id).create(
+        ObjectId(), ceo, start_date=now - timedelta(days=100), end_date=now - timedelta(days=50)
+    )
+
+    graph = org_graph.get_graph(org_id, view="people", as_of=now.date())
+
+    assert graph.occupants[ceo] == []
 
 
 def test_concurrent_opposite_edits_cannot_create_a_cycle(db):
